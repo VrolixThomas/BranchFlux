@@ -93,12 +93,30 @@ export function Terminal({
 		term.loadAddon(serialize);
 
 		const MAX_SCROLLBACK_CHARS = 50_000;
-		scrollbackRegistry.set(id, () => {
-			// Skip serialization while a TUI (Claude Code, vim, etc.) is using
-			// the alternate buffer — that content is ephemeral
-			if (term.buffer.active.type === "alternate") return "";
+		const MAX_SCROLLBACK_ROWS = 200;
 
-			const content = serialize.serialize({ excludeAltBuffer: true });
+		// Capture the "clean" normal-buffer state right before a TUI enters
+		// the alternate buffer so periodic saves don't lose pre-TUI history.
+		let preAltSnapshot = "";
+		term.buffer.onBufferChange(() => {
+			if (term.buffer.active.type === "alternate") {
+				preAltSnapshot = serialize.serialize({
+					excludeAltBuffer: true,
+					scrollback: MAX_SCROLLBACK_ROWS,
+				});
+			}
+		});
+
+		scrollbackRegistry.set(id, () => {
+			// While a TUI is active, return the pre-TUI snapshot
+			if (term.buffer.active.type === "alternate") {
+				return preAltSnapshot;
+			}
+
+			const content = serialize.serialize({
+				excludeAltBuffer: true,
+				scrollback: MAX_SCROLLBACK_ROWS,
+			});
 			if (content.length > MAX_SCROLLBACK_CHARS) {
 				return content.slice(content.length - MAX_SCROLLBACK_CHARS);
 			}
