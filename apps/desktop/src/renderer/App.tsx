@@ -1,3 +1,4 @@
+import { useShallow } from "zustand/react/shallow";
 import { AddRepositoryModal } from "./components/AddRepositoryModal";
 import { CreateWorktreeModal } from "./components/CreateWorktreeModal";
 import { Sidebar } from "./components/Sidebar";
@@ -6,7 +7,7 @@ import { TerminalTabs } from "./components/TerminalTabs";
 import { useTerminalStore } from "./stores/terminal";
 
 export function App() {
-	const visibleTabs = useTerminalStore((s) => s.getVisibleTabs());
+	const visibleTabs = useTerminalStore(useShallow((s) => s.getVisibleTabs()));
 	const activeTabId = useTerminalStore((s) => s.activeTabId);
 	const activeWorkspaceId = useTerminalStore((s) => s.activeWorkspaceId);
 

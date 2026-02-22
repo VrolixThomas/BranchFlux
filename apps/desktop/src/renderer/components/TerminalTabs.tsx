@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { TerminalTab } from "../stores/terminal";
 import { useTerminalStore } from "../stores/terminal";
 import { trpc } from "../trpc/client";
@@ -78,7 +79,7 @@ function Tab({
 }
 
 export function TerminalTabs() {
-	const tabs = useTerminalStore((s) => s.getVisibleTabs());
+	const tabs = useTerminalStore(useShallow((s) => s.getVisibleTabs()));
 	const activeTabId = useTerminalStore((s) => s.activeTabId);
 	const setActiveTab = useTerminalStore((s) => s.setActiveTab);
 	const removeTab = useTerminalStore((s) => s.removeTab);
