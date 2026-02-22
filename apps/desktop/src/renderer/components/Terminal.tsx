@@ -94,7 +94,11 @@ export function Terminal({
 
 		const MAX_SCROLLBACK_CHARS = 50_000;
 		scrollbackRegistry.set(id, () => {
-			const content = serialize.serialize();
+			// Skip serialization while a TUI (Claude Code, vim, etc.) is using
+			// the alternate buffer — that content is ephemeral
+			if (term.buffer.active.type === "alternate") return "";
+
+			const content = serialize.serialize({ excludeAltBuffer: true });
 			if (content.length > MAX_SCROLLBACK_CHARS) {
 				return content.slice(content.length - MAX_SCROLLBACK_CHARS);
 			}
