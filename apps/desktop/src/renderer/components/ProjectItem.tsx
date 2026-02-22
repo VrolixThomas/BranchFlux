@@ -24,7 +24,13 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
 				expanded ? "rotate-90" : "rotate-0",
 			].join(" ")}
 		>
-			<path d="M2 1l3 3-3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+			<path
+				d="M2 1l3 3-3 3"
+				stroke="currentColor"
+				strokeWidth="1.3"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
 		</svg>
 	);
 }
@@ -37,7 +43,7 @@ export function ProjectItem({ project, isExpanded, onToggle }: ProjectItemProps)
 	// Poll clone progress when cloning
 	const { data: progress } = trpc.projects.cloneProgress.useQuery(
 		{ id: project.id },
-		{ enabled: isCloning, refetchInterval: 1000 },
+		{ enabled: isCloning, refetchInterval: 1000 }
 	);
 
 	// Poll project status to detect when clone completes
@@ -53,18 +59,16 @@ export function ProjectItem({ project, isExpanded, onToggle }: ProjectItemProps)
 				}
 				return data;
 			},
-		},
+		}
 	);
 
 	// Fetch workspaces when expanded and project is ready
 	const { data: workspacesList } = trpc.workspaces.listByProject.useQuery(
 		{ projectId: project.id },
-		{ enabled: isExpanded && isReady },
+		{ enabled: isExpanded && isReady }
 	);
 
-	const openCreateWorktreeModal = useProjectStore(
-		(s) => s.openCreateWorktreeModal,
-	);
+	const openCreateWorktreeModal = useProjectStore((s) => s.openCreateWorktreeModal);
 
 	const [contextMenu, setContextMenu] = useState<{
 		x: number;

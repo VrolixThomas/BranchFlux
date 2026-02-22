@@ -27,7 +27,12 @@ function resolveEnv(): Record<string, string> {
 class TerminalManager {
 	private terminals: Map<string, TerminalInstance> = new Map();
 
-	create(id: string, onData: (data: string) => void, onExit: (code: number) => void, cwd?: string): void {
+	create(
+		id: string,
+		onData: (data: string) => void,
+		onExit: (code: number) => void,
+		cwd?: string
+	): void {
 		const shell = resolveShell();
 
 		const ptyProcess = pty.spawn(shell, ["-l"], {

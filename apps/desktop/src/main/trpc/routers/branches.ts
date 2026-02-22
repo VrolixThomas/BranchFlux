@@ -6,20 +6,14 @@ import { listBranches } from "../../git/operations";
 import { publicProcedure, router } from "../index";
 
 export const branchesRouter = router({
-	list: publicProcedure
-		.input(z.object({ projectId: z.string() }))
-		.query(async ({ input }) => {
-			const db = getDb();
-			const project = db
-				.select()
-				.from(projects)
-				.where(eq(projects.id, input.projectId))
-				.get();
+	list: publicProcedure.input(z.object({ projectId: z.string() })).query(async ({ input }) => {
+		const db = getDb();
+		const project = db.select().from(projects).where(eq(projects.id, input.projectId)).get();
 
-			if (!project) {
-				throw new Error("Project not found");
-			}
+		if (!project) {
+			throw new Error("Project not found");
+		}
 
-			return listBranches(project.repoPath);
-		}),
+		return listBranches(project.repoPath);
+	}),
 });

@@ -185,7 +185,7 @@ export function Terminal({ id, cwd }: { id: string; cwd?: string }) {
 			api?.terminal.dispose(id);
 			term.dispose();
 		};
-	}, [id]);
+	}, [id, cwd]);
 
 	return <div ref={ref} className="xterm-container" />;
 }

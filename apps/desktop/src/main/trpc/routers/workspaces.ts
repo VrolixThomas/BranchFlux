@@ -4,11 +4,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getDb } from "../../db";
 import { projects, workspaces, worktrees } from "../../db/schema";
-import {
-	createWorktree,
-	hasUncommittedChanges,
-	removeWorktree,
-} from "../../git/operations";
+import { createWorktree, hasUncommittedChanges, removeWorktree } from "../../git/operations";
 import { publicProcedure, router } from "../index";
 
 function worktreeBasePath(repoPath: string): string {
@@ -18,27 +14,25 @@ function worktreeBasePath(repoPath: string): string {
 }
 
 export const workspacesRouter = router({
-	listByProject: publicProcedure
-		.input(z.object({ projectId: z.string() }))
-		.query(({ input }) => {
-			const db = getDb();
-			return db
-				.select({
-					id: workspaces.id,
-					projectId: workspaces.projectId,
-					type: workspaces.type,
-					name: workspaces.name,
-					worktreeId: workspaces.worktreeId,
-					terminalId: workspaces.terminalId,
-					createdAt: workspaces.createdAt,
-					updatedAt: workspaces.updatedAt,
-					worktreePath: worktrees.path,
-				})
-				.from(workspaces)
-				.leftJoin(worktrees, eq(workspaces.worktreeId, worktrees.id))
-				.where(eq(workspaces.projectId, input.projectId))
-				.all();
-		}),
+	listByProject: publicProcedure.input(z.object({ projectId: z.string() })).query(({ input }) => {
+		const db = getDb();
+		return db
+			.select({
+				id: workspaces.id,
+				projectId: workspaces.projectId,
+				type: workspaces.type,
+				name: workspaces.name,
+				worktreeId: workspaces.worktreeId,
+				terminalId: workspaces.terminalId,
+				createdAt: workspaces.createdAt,
+				updatedAt: workspaces.updatedAt,
+				worktreePath: worktrees.path,
+			})
+			.from(workspaces)
+			.leftJoin(worktrees, eq(workspaces.worktreeId, worktrees.id))
+			.where(eq(workspaces.projectId, input.projectId))
+			.all();
+	}),
 
 	create: publicProcedure
 		.input(
@@ -50,11 +44,7 @@ export const workspacesRouter = router({
 		)
 		.mutation(async ({ input }) => {
 			const db = getDb();
-			const project = db
-				.select()
-				.from(projects)
-				.where(eq(projects.id, input.projectId))
-				.get();
+			const project = db.select().from(projects).where(eq(projects.id, input.projectId)).get();
 
 			if (!project) {
 				throw new Error("Project not found");
@@ -97,59 +87,47 @@ export const workspacesRouter = router({
 			return workspace;
 		}),
 
-	delete: publicProcedure
-		.input(z.object({ id: z.string() }))
-		.mutation(async ({ input }) => {
-			const db = getDb();
-			const workspace = db
-				.select()
-				.from(workspaces)
-				.where(eq(workspaces.id, input.id))
-				.get();
+	delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+		const db = getDb();
+		const workspace = db.select().from(workspaces).where(eq(workspaces.id, input.id)).get();
 
-			if (!workspace) {
-				throw new Error("Workspace not found");
-			}
+		if (!workspace) {
+			throw new Error("Workspace not found");
+		}
 
-			if (workspace.type === "branch") {
-				throw new Error("Cannot delete the main branch workspace");
-			}
+		if (workspace.type === "branch") {
+			throw new Error("Cannot delete the main branch workspace");
+		}
 
-			if (!workspace.worktreeId) {
-				throw new Error("Workspace has no associated worktree");
-			}
+		if (!workspace.worktreeId) {
+			throw new Error("Workspace has no associated worktree");
+		}
 
-			const worktree = db
-				.select()
-				.from(worktrees)
-				.where(eq(worktrees.id, workspace.worktreeId))
-				.get();
+		const worktree = db
+			.select()
+			.from(worktrees)
+			.where(eq(worktrees.id, workspace.worktreeId))
+			.get();
 
-			if (!worktree) {
-				throw new Error("Worktree not found");
-			}
+		if (!worktree) {
+			throw new Error("Worktree not found");
+		}
 
-			const dirty = await hasUncommittedChanges(worktree.path);
-			if (dirty) {
-				throw new Error(
-					"Worktree has uncommitted changes. Commit or discard them first."
-				);
-			}
+		const dirty = await hasUncommittedChanges(worktree.path);
+		if (dirty) {
+			throw new Error("Worktree has uncommitted changes. Commit or discard them first.");
+		}
 
-			const project = db
-				.select()
-				.from(projects)
-				.where(eq(projects.id, workspace.projectId))
-				.get();
+		const project = db.select().from(projects).where(eq(projects.id, workspace.projectId)).get();
 
-			if (!project) {
-				throw new Error("Project not found");
-			}
+		if (!project) {
+			throw new Error("Project not found");
+		}
 
-			await removeWorktree(project.repoPath, worktree.path);
+		await removeWorktree(project.repoPath, worktree.path);
 
-			db.delete(worktrees).where(eq(worktrees.id, worktree.id)).run();
-		}),
+		db.delete(worktrees).where(eq(worktrees.id, worktree.id)).run();
+	}),
 
 	attachTerminal: publicProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
