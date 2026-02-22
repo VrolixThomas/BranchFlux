@@ -1,5 +1,6 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { getDb, schema } from "../../db";
+import { saveTerminalSessions } from "../../db/session-persistence";
 import { publicProcedure, router } from "../index";
 
 const sessionInput = z.object({
@@ -8,7 +9,7 @@ const sessionInput = z.object({
 	title: z.string(),
 	cwd: z.string(),
 	scrollback: z.string().nullable(),
-	sortOrder: z.int(),
+	sortOrder: z.number().int(),
 });
 
 const saveInput = z.object({
@@ -18,32 +19,7 @@ const saveInput = z.object({
 
 export const terminalSessionsRouter = router({
 	save: publicProcedure.input(saveInput).mutation(async ({ input }) => {
-		const db = getDb();
-		const now = new Date();
-
-		db.transaction((tx) => {
-			tx.delete(schema.terminalSessions).run();
-			tx.delete(schema.sessionState).run();
-
-			for (const session of input.sessions) {
-				tx.insert(schema.terminalSessions)
-					.values({
-						id: session.id,
-						workspaceId: session.workspaceId,
-						title: session.title,
-						cwd: session.cwd,
-						scrollback: session.scrollback,
-						sortOrder: session.sortOrder,
-						updatedAt: now,
-					})
-					.run();
-			}
-
-			for (const [key, value] of Object.entries(input.state)) {
-				tx.insert(schema.sessionState).values({ key, value }).run();
-			}
-		});
-
+		saveTerminalSessions(input);
 		return { ok: true };
 	}),
 

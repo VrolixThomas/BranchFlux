@@ -1,6 +1,10 @@
 import { join } from "node:path";
 import { BrowserWindow, app, dialog, ipcMain } from "electron";
-import { getDb, initializeDatabase, schema } from "./db";
+import { initializeDatabase } from "./db";
+import {
+	type SessionSaveData,
+	saveTerminalSessions,
+} from "./db/session-persistence";
 import { setupTerminalIPC } from "./terminal/ipc";
 import { terminalManager } from "./terminal/manager";
 import { setupTRPCIPC } from "./trpc/ipc-link";
@@ -46,45 +50,9 @@ app.whenReady().then(() => {
 
 	ipcMain.on(
 		"terminal-sessions:save-sync",
-		(
-			event,
-			data: {
-				sessions: Array<{
-					id: string;
-					workspaceId: string;
-					title: string;
-					cwd: string;
-					scrollback: string | null;
-					sortOrder: number;
-				}>;
-				state: Record<string, string>;
-			}
-		) => {
+		(event, data: SessionSaveData) => {
 			try {
-				const db = getDb();
-				const now = new Date();
-				db.transaction((tx) => {
-					tx.delete(schema.terminalSessions).run();
-					tx.delete(schema.sessionState).run();
-
-					for (const session of data.sessions) {
-						tx.insert(schema.terminalSessions)
-							.values({
-								id: session.id,
-								workspaceId: session.workspaceId,
-								title: session.title,
-								cwd: session.cwd,
-								scrollback: session.scrollback,
-								sortOrder: session.sortOrder,
-								updatedAt: now,
-							})
-							.run();
-					}
-
-					for (const [key, value] of Object.entries(data.state)) {
-						tx.insert(schema.sessionState).values({ key, value }).run();
-					}
-				});
+				saveTerminalSessions(data);
 				event.returnValue = { ok: true };
 			} catch (err) {
 				console.error("Failed to save terminal sessions on quit:", err);
