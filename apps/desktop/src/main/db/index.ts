@@ -70,6 +70,25 @@ export function initializeDatabase(): void {
 			updated_at INTEGER NOT NULL
 		)
 	`);
+
+	db.run(/* sql */ `
+		CREATE TABLE IF NOT EXISTS terminal_sessions (
+			id TEXT PRIMARY KEY,
+			workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			cwd TEXT NOT NULL,
+			scrollback TEXT,
+			sort_order INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		)
+	`);
+
+	db.run(/* sql */ `
+		CREATE TABLE IF NOT EXISTS session_state (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		)
+	`);
 }
 
 export { schema };

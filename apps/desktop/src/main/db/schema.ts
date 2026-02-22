@@ -50,3 +50,23 @@ export const workspaces = sqliteTable("workspaces", {
 
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
+
+export const terminalSessions = sqliteTable("terminal_sessions", {
+	id: text("id").primaryKey(),
+	workspaceId: text("workspace_id")
+		.notNull()
+		.references(() => workspaces.id, { onDelete: "cascade" }),
+	title: text("title").notNull(),
+	cwd: text("cwd").notNull(),
+	scrollback: text("scrollback"),
+	sortOrder: integer("sort_order").notNull(),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export type TerminalSession = typeof terminalSessions.$inferSelect;
+export type NewTerminalSession = typeof terminalSessions.$inferInsert;
+
+export const sessionState = sqliteTable("session_state", {
+	key: text("key").primaryKey(),
+	value: text("value").notNull(),
+});
