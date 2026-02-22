@@ -18,7 +18,7 @@ const dataDispatcher = createDispatcher<[string]>("terminal:data");
 const exitDispatcher = createDispatcher<[number]>("terminal:exit");
 
 const terminalAPI: TerminalAPI = {
-	create: (id: string) => ipcRenderer.invoke("terminal:create", id),
+	create: (id: string, cwd?: string) => ipcRenderer.invoke("terminal:create", id, cwd),
 	write: (id: string, data: string) => ipcRenderer.invoke("terminal:write", id, data),
 	resize: (id: string, cols: number, rows: number) =>
 		ipcRenderer.invoke("terminal:resize", id, cols, rows),

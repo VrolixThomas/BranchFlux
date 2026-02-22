@@ -1,5 +1,5 @@
 export interface TerminalAPI {
-	create: (id: string) => Promise<void>;
+	create: (id: string, cwd?: string) => Promise<void>;
 	write: (id: string, data: string) => Promise<void>;
 	resize: (id: string, cols: number, rows: number) => Promise<void>;
 	dispose: (id: string) => Promise<void>;
