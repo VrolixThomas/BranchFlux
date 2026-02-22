@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Project } from "../../main/db/schema";
+import { trpc } from "../trpc/client";
 import { ProjectContextMenu } from "./ProjectContextMenu";
 
 interface ProjectItemProps {
@@ -15,6 +16,28 @@ export function ProjectItem({
 }: ProjectItemProps) {
 	const isCloning = project.status === "cloning";
 	const isError = project.status === "error";
+
+	// Poll clone progress when cloning
+	const { data: progress } = trpc.projects.cloneProgress.useQuery(
+		{ id: project.id },
+		{ enabled: isCloning, refetchInterval: 1000 }
+	);
+
+	// Poll project status to detect when clone completes
+	const utils = trpc.useUtils();
+	trpc.projects.getById.useQuery(
+		{ id: project.id },
+		{
+			enabled: isCloning,
+			refetchInterval: 2000,
+			select: (data) => {
+				if (data && data.status !== "cloning") {
+					utils.projects.list.invalidate();
+				}
+				return data;
+			},
+		}
+	);
 	const [contextMenu, setContextMenu] = useState<{
 		x: number;
 		y: number;
@@ -66,7 +89,9 @@ export function ProjectItem({
 					</div>
 					{isCloning && (
 						<div className="text-[11px] text-[var(--text-quaternary)]">
-							Cloning...
+							{progress
+								? `${progress.stage}... ${progress.progress}%`
+								: "Cloning..."}
 						</div>
 					)}
 				</div>
