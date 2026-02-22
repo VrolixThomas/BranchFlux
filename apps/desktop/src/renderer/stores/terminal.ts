@@ -25,6 +25,14 @@ interface TerminalStore {
 	// Queries
 	getTabsByWorkspace: (workspaceId: string) => TerminalTab[];
 	getVisibleTabs: () => TerminalTab[];
+
+	// Session restore
+	hydrate: (
+		sessions: Array<{ id: string; workspaceId: string; title: string; cwd: string }>,
+		activeTabId: string | null,
+		activeWorkspaceId: string | null,
+		activeWorkspaceCwd: string
+	) => void;
 }
 
 let counter = 0;
@@ -41,8 +49,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 		set({
 			activeWorkspaceId: workspaceId,
 			activeWorkspaceCwd: cwd,
-			activeTabId:
-				wsTabs.find((t) => t.id === state.activeTabId)?.id ?? wsTabs[0]?.id ?? null,
+			activeTabId: wsTabs.find((t) => t.id === state.activeTabId)?.id ?? wsTabs[0]?.id ?? null,
 		});
 	},
 
@@ -87,5 +94,25 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 		const state = get();
 		if (!state.activeWorkspaceId) return [];
 		return state.tabs.filter((t) => t.workspaceId === state.activeWorkspaceId);
+	},
+
+	hydrate: (sessions, activeTab, activeWs, activeCwd) => {
+		const maxId = sessions.reduce((max, s) => {
+			const match = s.id.match(/^terminal-(\d+)$/);
+			return match ? Math.max(max, Number(match[1])) : max;
+		}, 0);
+		counter = maxId;
+
+		set({
+			tabs: sessions.map((s) => ({
+				id: s.id,
+				workspaceId: s.workspaceId,
+				title: s.title,
+				cwd: s.cwd,
+			})),
+			activeTabId: activeTab,
+			activeWorkspaceId: activeWs,
+			activeWorkspaceCwd: activeCwd,
+		});
 	},
 }));
