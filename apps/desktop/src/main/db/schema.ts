@@ -17,3 +17,36 @@ export const projects = sqliteTable("projects", {
 
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+
+export const worktrees = sqliteTable("worktrees", {
+	id: text("id").primaryKey(),
+	projectId: text("project_id")
+		.notNull()
+		.references(() => projects.id, { onDelete: "cascade" }),
+	path: text("path").notNull().unique(),
+	branch: text("branch").notNull(),
+	baseBranch: text("base_branch").notNull(),
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export type Worktree = typeof worktrees.$inferSelect;
+export type NewWorktree = typeof worktrees.$inferInsert;
+
+export const workspaces = sqliteTable("workspaces", {
+	id: text("id").primaryKey(),
+	projectId: text("project_id")
+		.notNull()
+		.references(() => projects.id, { onDelete: "cascade" }),
+	type: text("type", { enum: ["branch", "worktree"] }).notNull(),
+	name: text("name").notNull(),
+	worktreeId: text("worktree_id").references(() => worktrees.id, {
+		onDelete: "cascade",
+	}),
+	terminalId: text("terminal_id"),
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export type Workspace = typeof workspaces.$inferSelect;
+export type NewWorkspace = typeof workspaces.$inferInsert;
