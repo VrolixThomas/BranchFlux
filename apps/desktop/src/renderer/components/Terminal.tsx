@@ -2,6 +2,7 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { SearchAddon } from "@xterm/addon-search";
+import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -10,6 +11,10 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef } from "react";
 import { CmdBuffer } from "../../shared/lib/cmd-buffer";
 import { useTerminalStore } from "../stores/terminal";
+
+// Global registry: maps tab id → serialize function
+// Used by the session save logic to collect scrollback from all mounted terminals
+export const scrollbackRegistry = new Map<string, () => string>();
 
 function buildTerminalTheme(): ITheme {
 	const s = getComputedStyle(document.documentElement);
@@ -39,7 +44,11 @@ function buildTerminalTheme(): ITheme {
 	};
 }
 
-export function Terminal({ id, cwd }: { id: string; cwd?: string }) {
+export function Terminal({
+	id,
+	cwd,
+	initialContent,
+}: { id: string; cwd?: string; initialContent?: string }) {
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -79,6 +88,19 @@ export function Terminal({ id, cwd }: { id: string; cwd?: string }) {
 		// ImageAddon: must load after open() and after the renderer addon
 		term.loadAddon(new ImageAddon());
 
+		// SerializeAddon: for session persistence
+		const serialize = new SerializeAddon();
+		term.loadAddon(serialize);
+
+		const MAX_SCROLLBACK_CHARS = 50_000;
+		scrollbackRegistry.set(id, () => {
+			const content = serialize.serialize();
+			if (content.length > MAX_SCROLLBACK_CHARS) {
+				return content.slice(content.length - MAX_SCROLLBACK_CHARS);
+			}
+			return content;
+		});
+
 		// Reactive theme: watch for CSS variable changes (theme toggle, OS dark/light)
 		let rafId = 0;
 		const applyTheme = () => {
@@ -99,6 +121,11 @@ export function Terminal({ id, cwd }: { id: string; cwd?: string }) {
 		mql.addEventListener("change", scheduleTheme);
 
 		requestAnimationFrame(() => fit.fit());
+
+		// Replay saved scrollback content before connecting PTY
+		if (initialContent) {
+			term.write(initialContent);
+		}
 
 		// Wire up PTY if running inside Electron
 		const api = window.electron;
@@ -182,10 +209,11 @@ export function Terminal({ id, cwd }: { id: string; cwd?: string }) {
 			themeObserver.disconnect();
 			mql.removeEventListener("change", scheduleTheme);
 			if (rafId) cancelAnimationFrame(rafId);
+			scrollbackRegistry.delete(id);
 			api?.terminal.dispose(id);
 			term.dispose();
 		};
-	}, [id, cwd]);
+	}, [id, cwd, initialContent]);
 
 	return <div ref={ref} className="xterm-container" />;
 }
