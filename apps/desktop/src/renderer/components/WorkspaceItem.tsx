@@ -117,11 +117,16 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 
 	const utils = trpc.useUtils();
 	const attachTerminal = trpc.workspaces.attachTerminal.useMutation();
+	const attachTerminalRef = useRef(attachTerminal.mutate);
+	attachTerminalRef.current = attachTerminal.mutate;
+
 	const deleteWorkspace = trpc.workspaces.delete.useMutation({
 		onSuccess: () => {
 			utils.workspaces.listByProject.invalidate();
 		},
 	});
+	const deleteWorkspaceRef = useRef(deleteWorkspace.mutate);
+	deleteWorkspaceRef.current = deleteWorkspace.mutate;
 
 	const isActive = useTerminalStore((s) => s.activeWorkspaceId === workspace.id);
 
@@ -144,7 +149,7 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 				console.error("Failed to create workspace terminal:", err);
 			});
 
-			attachTerminal.mutate({
+			attachTerminalRef.current({
 				workspaceId: workspace.id,
 				terminalId: tabId,
 			});
@@ -156,7 +161,6 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 		workspace.name,
 		projectName,
 		projectRepoPath,
-		attachTerminal,
 	]);
 
 	const handleDelete = useCallback(() => {
@@ -173,10 +177,10 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 			if (store.activeWorkspaceId === workspace.id) {
 				store.setActiveWorkspace("", "");
 			}
-			deleteWorkspace.mutate({ id: workspace.id });
+			deleteWorkspaceRef.current({ id: workspace.id });
 		}
 		setContextMenu(null);
-	}, [workspace.id, workspace.name, deleteWorkspace]);
+	}, [workspace.id, workspace.name]);
 
 	return (
 		<>
