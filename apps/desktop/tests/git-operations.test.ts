@@ -1,5 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import { extractRepoName, parseGitHubUrl, validateGitUrl } from "../src/main/git/operations";
+import { mkdirSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import {
+	createWorktree,
+	extractRepoName,
+	initRepo,
+	listBranches,
+	listWorktrees,
+	parseGitHubUrl,
+	removeWorktree,
+	validateGitUrl,
+} from "../src/main/git/operations";
 
 describe("validateGitUrl", () => {
 	test("accepts HTTPS GitHub URL", () => {
@@ -54,5 +66,68 @@ describe("parseGitHubUrl", () => {
 
 	test("returns null for non-GitHub URL", () => {
 		expect(parseGitHubUrl("https://gitlab.com/owner/repo.git")).toBeNull();
+	});
+});
+
+describe("worktree operations", () => {
+	const testDir = join(realpathSync(tmpdir()), `branchflux-test-${Date.now()}`);
+	const repoPath = join(testDir, "main-repo");
+	const worktreePath = join(testDir, "main-repo-worktrees", "feature-test");
+
+	beforeAll(async () => {
+		mkdirSync(testDir, { recursive: true });
+		await initRepo(repoPath, "main");
+		const git = (await import("simple-git")).default(repoPath);
+		await git.raw(["commit", "--allow-empty", "-m", "initial commit"]);
+	});
+
+	afterAll(() => {
+		rmSync(testDir, { recursive: true, force: true });
+	});
+
+	test("createWorktree creates a worktree with a new branch", async () => {
+		await createWorktree(repoPath, worktreePath, "feature-test", "main");
+		const worktrees = await listWorktrees(repoPath);
+		expect(worktrees.length).toBeGreaterThanOrEqual(2);
+		const found = worktrees.find((w) => w.branch === "feature-test");
+		expect(found).toBeDefined();
+		expect(found?.path).toBe(worktreePath);
+	});
+
+	test("listWorktrees returns all worktrees with branch info", async () => {
+		const worktrees = await listWorktrees(repoPath);
+		expect(worktrees.length).toBeGreaterThanOrEqual(2);
+		const main = worktrees.find((w) => w.branch === "main");
+		expect(main).toBeDefined();
+	});
+
+	test("removeWorktree removes the worktree", async () => {
+		await removeWorktree(repoPath, worktreePath);
+		const worktrees = await listWorktrees(repoPath);
+		const found = worktrees.find((w) => w.branch === "feature-test");
+		expect(found).toBeUndefined();
+	});
+});
+
+describe("listBranches", () => {
+	const testDir = join(realpathSync(tmpdir()), `branchflux-branches-${Date.now()}`);
+	const repoPath = join(testDir, "repo");
+
+	beforeAll(async () => {
+		mkdirSync(testDir, { recursive: true });
+		await initRepo(repoPath, "main");
+		const git = (await import("simple-git")).default(repoPath);
+		await git.raw(["commit", "--allow-empty", "-m", "initial commit"]);
+		await git.branch(["develop"]);
+	});
+
+	afterAll(() => {
+		rmSync(testDir, { recursive: true, force: true });
+	});
+
+	test("lists local branches", async () => {
+		const branches = await listBranches(repoPath);
+		expect(branches).toContain("main");
+		expect(branches).toContain("develop");
 	});
 });

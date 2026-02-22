@@ -116,3 +116,62 @@ export async function parseRemoteUrl(
 		return null;
 	}
 }
+
+export interface WorktreeInfo {
+	path: string;
+	branch: string;
+	isMain: boolean;
+}
+
+export async function createWorktree(
+	repoPath: string,
+	worktreePath: string,
+	branch: string,
+	baseBranch: string
+): Promise<void> {
+	const git = simpleGit(repoPath);
+	await git.raw(["worktree", "add", "-b", branch, worktreePath, baseBranch]);
+}
+
+export async function removeWorktree(repoPath: string, worktreePath: string): Promise<void> {
+	const git = simpleGit(repoPath);
+	await git.raw(["worktree", "remove", worktreePath, "--force"]);
+}
+
+export async function listWorktrees(repoPath: string): Promise<WorktreeInfo[]> {
+	const git = simpleGit(repoPath);
+	const output = await git.raw(["worktree", "list", "--porcelain"]);
+	const worktrees: WorktreeInfo[] = [];
+	let current: Partial<WorktreeInfo> = {};
+
+	for (const line of output.split("\n")) {
+		if (line.startsWith("worktree ")) {
+			current.path = line.slice("worktree ".length);
+		} else if (line.startsWith("branch refs/heads/")) {
+			current.branch = line.slice("branch refs/heads/".length);
+		} else if (line === "") {
+			if (current.path && current.branch) {
+				worktrees.push({
+					path: current.path,
+					branch: current.branch,
+					isMain: worktrees.length === 0,
+				});
+			}
+			current = {};
+		}
+	}
+
+	return worktrees;
+}
+
+export async function listBranches(repoPath: string): Promise<string[]> {
+	const git = simpleGit(repoPath);
+	const result = await git.branchLocal();
+	return result.all;
+}
+
+export async function hasUncommittedChanges(repoPath: string): Promise<boolean> {
+	const git = simpleGit(repoPath);
+	const status = await git.raw(["status", "--porcelain"]);
+	return status.trim().length > 0;
+}
