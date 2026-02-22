@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -30,6 +30,24 @@ const PROJECT_COLORS = [
 
 function randomColor(): string {
 	return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)] ?? "#0a84ff";
+}
+
+function resolveTilde(p: string): string {
+	if (p.startsWith("~/")) return join(homedir(), p.slice(2));
+	if (p === "~") return homedir();
+	return p;
+}
+
+function assertSafePath(baseDir: string, childName: string): string {
+	if (/[/\\]/.test(childName)) {
+		throw new Error("Name must not contain path separators");
+	}
+	const resolvedBase = resolve(baseDir);
+	const resolvedTarget = resolve(baseDir, childName);
+	if (!resolvedTarget.startsWith(resolvedBase + "/")) {
+		throw new Error("Path escapes target directory");
+	}
+	return resolvedTarget;
 }
 
 const DEFAULT_PROJECTS_DIR = join(homedir(), "BranchFlux", "projects");
@@ -62,8 +80,8 @@ export const projectsRouter = router({
 			}
 
 			const repoName = extractRepoName(input.url);
-			const targetDir = input.targetDir || DEFAULT_PROJECTS_DIR;
-			const targetPath = join(targetDir, repoName);
+			const targetDir = resolveTilde(input.targetDir || DEFAULT_PROJECTS_DIR);
+			const targetPath = assertSafePath(targetDir, repoName);
 
 			if (existsSync(targetPath)) {
 				throw new Error(`Directory already exists: ${targetPath}`);
@@ -139,6 +157,9 @@ export const projectsRouter = router({
 	}),
 
 	openNew: publicProcedure.input(z.object({ path: z.string() })).mutation(async ({ input }) => {
+		if (!isAbsolute(input.path)) {
+			throw new Error("Path must be absolute");
+		}
 		const gitRoot = await getGitRoot(input.path);
 		if (!gitRoot) {
 			throw new Error("Not a git repository. Please initialize git first.");
@@ -196,8 +217,8 @@ export const projectsRouter = router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const targetDir = input.path || DEFAULT_PROJECTS_DIR;
-			const targetPath = join(targetDir, input.name);
+			const targetDir = resolveTilde(input.path || DEFAULT_PROJECTS_DIR);
+			const targetPath = assertSafePath(targetDir, input.name);
 
 			if (existsSync(targetPath)) {
 				throw new Error(`Directory already exists: ${targetPath}`);
