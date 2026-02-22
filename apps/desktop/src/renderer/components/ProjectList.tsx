@@ -4,7 +4,7 @@ import { ProjectItem } from "./ProjectItem";
 
 export function ProjectList() {
 	const { data: projectsList } = trpc.projects.list.useQuery();
-	const { selectedProjectId, selectProject } = useProjectStore();
+	const { expandedProjectIds, toggleProjectExpanded } = useProjectStore();
 
 	if (!projectsList?.length) return null;
 
@@ -14,8 +14,8 @@ export function ProjectList() {
 				<ProjectItem
 					key={project.id}
 					project={project}
-					isSelected={project.id === selectedProjectId}
-					onSelect={() => selectProject(project.id)}
+					isExpanded={expandedProjectIds.has(project.id)}
+					onToggle={() => toggleProjectExpanded(project.id)}
 				/>
 			))}
 		</div>

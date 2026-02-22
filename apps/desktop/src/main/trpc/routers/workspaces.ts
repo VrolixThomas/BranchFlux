@@ -23,8 +23,19 @@ export const workspacesRouter = router({
 		.query(({ input }) => {
 			const db = getDb();
 			return db
-				.select()
+				.select({
+					id: workspaces.id,
+					projectId: workspaces.projectId,
+					type: workspaces.type,
+					name: workspaces.name,
+					worktreeId: workspaces.worktreeId,
+					terminalId: workspaces.terminalId,
+					createdAt: workspaces.createdAt,
+					updatedAt: workspaces.updatedAt,
+					worktreePath: worktrees.path,
+				})
 				.from(workspaces)
+				.leftJoin(worktrees, eq(workspaces.worktreeId, worktrees.id))
 				.where(eq(workspaces.projectId, input.projectId))
 				.all();
 		}),
