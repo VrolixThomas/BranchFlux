@@ -50,6 +50,10 @@ export function Terminal({
 	initialContent,
 }: { id: string; cwd?: string; initialContent?: string }) {
 	const ref = useRef<HTMLDivElement>(null);
+	const cwdRef = useRef(cwd);
+	const initialContentRef = useRef(initialContent);
+	cwdRef.current = cwd;
+	initialContentRef.current = initialContent;
 
 	useEffect(() => {
 		if (!ref.current) return;
@@ -145,8 +149,8 @@ export function Terminal({
 		requestAnimationFrame(() => fit.fit());
 
 		// Replay saved scrollback content before connecting PTY
-		if (initialContent) {
-			term.write(initialContent);
+		if (initialContentRef.current) {
+			term.write(initialContentRef.current);
 		}
 
 		// Wire up PTY if running inside Electron
@@ -155,7 +159,7 @@ export function Terminal({
 		let cleanupExit: (() => void) | undefined;
 
 		if (api) {
-			api.terminal.create(id, cwd || undefined).catch((err: Error) => {
+			api.terminal.create(id, cwdRef.current || undefined).catch((err: Error) => {
 				console.error("Failed to create PTY:", err);
 				term.write(`\r\n\x1b[31m[Failed to create terminal: ${err.message}]\x1b[0m\r\n`);
 			});
@@ -235,7 +239,7 @@ export function Terminal({
 			api?.terminal.dispose(id);
 			term.dispose();
 		};
-	}, [id, cwd, initialContent]);
+	}, [id]);
 
 	return <div ref={ref} className="xterm-container" />;
 }
