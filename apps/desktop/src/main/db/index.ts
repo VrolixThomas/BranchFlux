@@ -45,6 +45,31 @@ export function initializeDatabase(): void {
 			updated_at INTEGER NOT NULL
 		)
 	`);
+
+	db.run(/* sql */ `
+		CREATE TABLE IF NOT EXISTS worktrees (
+			id TEXT PRIMARY KEY,
+			project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			path TEXT NOT NULL UNIQUE,
+			branch TEXT NOT NULL,
+			base_branch TEXT NOT NULL,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		)
+	`);
+
+	db.run(/* sql */ `
+		CREATE TABLE IF NOT EXISTS workspaces (
+			id TEXT PRIMARY KEY,
+			project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			type TEXT NOT NULL CHECK(type IN ('branch', 'worktree')),
+			name TEXT NOT NULL,
+			worktree_id TEXT REFERENCES worktrees(id) ON DELETE CASCADE,
+			terminal_id TEXT,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		)
+	`);
 }
 
 export { schema };
