@@ -16,10 +16,6 @@ export function ProjectList() {
 					project={project}
 					isSelected={project.id === selectedProjectId}
 					onSelect={() => selectProject(project.id)}
-					onContextMenu={(e) => {
-						e.preventDefault();
-						// Context menu handled in Task 12
-					}}
 				/>
 			))}
 		</div>
