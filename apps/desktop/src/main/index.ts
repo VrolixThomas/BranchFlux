@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, dialog, ipcMain } from "electron";
 import { initializeDatabase } from "./db";
 import { setupTerminalIPC } from "./terminal/ipc";
 import { terminalManager } from "./terminal/manager";
@@ -43,6 +43,15 @@ app.whenReady().then(() => {
 	setupTerminalIPC();
 	initializeDatabase();
 	setupTRPCIPC(appRouter);
+
+	ipcMain.handle("dialog:openDirectory", async () => {
+		const result = await dialog.showOpenDialog({
+			properties: ["openDirectory", "multiSelections"],
+		});
+		if (result.canceled) return null;
+		return result.filePaths;
+	});
+
 	createWindow();
 
 	app.on("activate", () => {

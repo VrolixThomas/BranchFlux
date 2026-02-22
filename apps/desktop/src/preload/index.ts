@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { TerminalAPI } from "../shared/types";
+import type { DialogAPI, TerminalAPI, TrpcAPI } from "../shared/types";
 
 function createDispatcher<T extends unknown[]>(channel: string) {
 	const listeners = new Map<string, (...args: T) => void>();
@@ -27,6 +27,16 @@ const terminalAPI: TerminalAPI = {
 	onExit: (id: string, callback: (exitCode: number) => void) => exitDispatcher.add(id, callback),
 };
 
+const trpcAPI: TrpcAPI = {
+	request: (opts) => ipcRenderer.invoke("trpc:request", opts),
+};
+
+const dialogAPI: DialogAPI = {
+	openDirectory: () => ipcRenderer.invoke("dialog:openDirectory"),
+};
+
 contextBridge.exposeInMainWorld("electron", {
 	terminal: terminalAPI,
+	trpc: trpcAPI,
+	dialog: dialogAPI,
 });
