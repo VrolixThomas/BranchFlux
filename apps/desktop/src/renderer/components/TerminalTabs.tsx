@@ -1,5 +1,7 @@
 import { Fragment, useCallback, useRef } from "react";
+import type { TerminalTab } from "../stores/terminal";
 import { useTerminalStore } from "../stores/terminal";
+import { trpc } from "../trpc/client";
 
 function Tab({
 	tab,
@@ -7,7 +9,7 @@ function Tab({
 	onSelect,
 	onClose,
 }: {
-	tab: { id: string; title: string };
+	tab: TerminalTab;
 	isActive: boolean;
 	onSelect: () => void;
 	onClose: () => void;
@@ -77,6 +79,7 @@ function Tab({
 
 export function TerminalTabs() {
 	const { tabs, activeTabId, setActiveTab, removeTab, addTab } = useTerminalStore();
+	const detachMutation = trpc.workspaces.detachTerminal.useMutation();
 
 	return (
 		<div
@@ -102,7 +105,12 @@ export function TerminalTabs() {
 								tab={tab}
 								isActive={isActive}
 								onSelect={() => setActiveTab(tab.id)}
-								onClose={() => removeTab(tab.id)}
+								onClose={() => {
+									if (tab.workspaceId) {
+										detachMutation.mutate({ workspaceId: tab.workspaceId });
+									}
+									removeTab(tab.id);
+								}}
 							/>
 						</Fragment>
 					);
