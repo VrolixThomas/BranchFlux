@@ -15,12 +15,12 @@ export function CreateWorktreeModal() {
 
 	const projectQuery = trpc.projects.getById.useQuery(
 		{ id: projectId },
-		{ enabled: isCreateWorktreeModalOpen && projectId !== "" },
+		{ enabled: isCreateWorktreeModalOpen && projectId !== "" }
 	);
 
 	const branchesQuery = trpc.branches.list.useQuery(
 		{ projectId },
-		{ enabled: isCreateWorktreeModalOpen && projectId !== "" },
+		{ enabled: isCreateWorktreeModalOpen && projectId !== "" }
 	);
 
 	const attachTerminal = trpc.workspaces.attachTerminal.useMutation();
@@ -71,7 +71,7 @@ export function CreateWorktreeModal() {
 			setBaseBranch("");
 			createMutation.reset();
 		}
-	}, [isCreateWorktreeModalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [isCreateWorktreeModalOpen, createMutation.reset]);
 
 	// Escape key to close
 	useEffect(() => {
@@ -144,7 +144,6 @@ export function CreateWorktreeModal() {
 							value={branchName}
 							onChange={(e) => setBranchName(e.target.value)}
 							placeholder="feature-branch-name"
-							autoFocus
 							className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-quaternary)] focus:border-[var(--accent)] focus:outline-none"
 						/>
 					</div>
@@ -181,9 +180,7 @@ export function CreateWorktreeModal() {
 					</button>
 
 					{createMutation.isError && (
-						<p className="text-[13px] text-[var(--term-red)]">
-							{createMutation.error.message}
-						</p>
+						<p className="text-[13px] text-[var(--term-red)]">{createMutation.error.message}</p>
 					)}
 				</form>
 			</div>

@@ -109,11 +109,7 @@ function WorkspaceContextMenu({
 	);
 }
 
-export function WorkspaceItem({
-	workspace,
-	projectName,
-	projectRepoPath,
-}: WorkspaceItemProps) {
+export function WorkspaceItem({ workspace, projectName, projectRepoPath }: WorkspaceItemProps) {
 	const [contextMenu, setContextMenu] = useState<{
 		x: number;
 		y: number;
@@ -127,9 +123,7 @@ export function WorkspaceItem({
 		},
 	});
 
-	const isActive = useTerminalStore(
-		(s) => s.getTabByWorkspace(workspace.id) !== undefined,
-	);
+	const isActive = useTerminalStore((s) => s.getTabByWorkspace(workspace.id) !== undefined);
 
 	const handleClick = useCallback(() => {
 		const cwd =
@@ -164,7 +158,7 @@ export function WorkspaceItem({
 
 	const handleDelete = useCallback(() => {
 		const confirmed = window.confirm(
-			`Delete worktree "${workspace.name}"? This will remove the worktree directory.`,
+			`Delete worktree "${workspace.name}"? This will remove the worktree directory.`
 		);
 		if (confirmed) {
 			useTerminalStore.getState().closeWorkspace(workspace.id);
