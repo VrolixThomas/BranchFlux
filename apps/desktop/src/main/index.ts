@@ -1,7 +1,10 @@
 import { join } from "node:path";
 import { BrowserWindow, app } from "electron";
+import { initializeDatabase } from "./db";
 import { setupTerminalIPC } from "./terminal/ipc";
 import { terminalManager } from "./terminal/manager";
+import { setupTRPCIPC } from "./trpc/ipc-link";
+import { appRouter } from "./trpc/routers";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -38,6 +41,8 @@ function createWindow() {
 
 app.whenReady().then(() => {
 	setupTerminalIPC();
+	initializeDatabase();
+	setupTRPCIPC(appRouter);
 	createWindow();
 
 	app.on("activate", () => {
