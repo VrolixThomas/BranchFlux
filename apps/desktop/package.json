@@ -1,5 +1,6 @@
 {
-	"name": "@branchflux/desktop",
+	"name": "branchflux",
+	"productName": "BranchFlux",
 	"version": "0.1.0",
 	"description": "branchflux Desktop Application",
 	"main": "./out/main/index.js",
