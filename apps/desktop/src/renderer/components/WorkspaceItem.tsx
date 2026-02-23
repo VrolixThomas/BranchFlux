@@ -139,15 +139,13 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 		const store = useTerminalStore.getState();
 		store.setActiveWorkspace(workspace.id, cwd);
 
-		// Auto-create first terminal if none exist for this workspace
+		// Auto-create first terminal if none exist for this workspace.
+		// PTY creation is handled by the Terminal component's useEffect — only
+		// add the tab to the store here; mounting <Terminal> spawns the PTY.
 		const existing = store.getTabsByWorkspace(workspace.id);
 		if (existing.length === 0) {
 			const title = `${projectName}: ${workspace.name}`;
 			const tabId = store.addTab(workspace.id, cwd, title);
-
-			window.electron.terminal.create(tabId, cwd).catch((err: Error) => {
-				console.error("Failed to create workspace terminal:", err);
-			});
 
 			attachTerminalRef.current({
 				workspaceId: workspace.id,

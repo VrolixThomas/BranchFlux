@@ -99,15 +99,26 @@ export function Terminal({
 		const MAX_SCROLLBACK_CHARS = 50_000;
 		const MAX_SCROLLBACK_ROWS = 200;
 
+		// Strip the last line from serialized content. The last line is always
+		// the shell prompt, which the new PTY will reproduce on its own.
+		// Without this, each app restart accumulates an extra prompt line.
+		const trimPromptLine = (content: string): string => {
+			const lastNewline = content.lastIndexOf("\n");
+			return lastNewline >= 0 ? content.slice(0, lastNewline + 1) : "";
+		};
+
 		// Capture the "clean" normal-buffer state right before a TUI enters
 		// the alternate buffer so periodic saves don't lose pre-TUI history.
 		let preAltSnapshot = "";
 		term.buffer.onBufferChange(() => {
 			if (term.buffer.active.type === "alternate") {
-				preAltSnapshot = serialize.serialize({
-					excludeAltBuffer: true,
-					scrollback: MAX_SCROLLBACK_ROWS,
-				});
+				preAltSnapshot = trimPromptLine(
+					serialize.serialize({
+						excludeAltBuffer: true,
+						excludeModes: true,
+						scrollback: MAX_SCROLLBACK_ROWS,
+					})
+				);
 			}
 		});
 
@@ -117,10 +128,13 @@ export function Terminal({
 				return preAltSnapshot;
 			}
 
-			const content = serialize.serialize({
-				excludeAltBuffer: true,
-				scrollback: MAX_SCROLLBACK_ROWS,
-			});
+			const content = trimPromptLine(
+				serialize.serialize({
+					excludeAltBuffer: true,
+					excludeModes: true,
+					scrollback: MAX_SCROLLBACK_ROWS,
+				})
+			);
 			if (content.length > MAX_SCROLLBACK_CHARS) {
 				return content.slice(content.length - MAX_SCROLLBACK_CHARS);
 			}
