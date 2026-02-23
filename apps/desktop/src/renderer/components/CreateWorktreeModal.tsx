@@ -41,10 +41,6 @@ export function CreateWorktreeModal() {
 				store.setActiveWorkspace(workspace.id, cwd);
 				const tabId = store.addTab(workspace.id, cwd, title);
 
-				window.electron.terminal.create(tabId, cwd).catch((err: Error) => {
-					console.error("Failed to create workspace terminal:", err);
-				});
-
 				attachTerminal.mutate({
 					workspaceId: workspace.id,
 					terminalId: tabId,

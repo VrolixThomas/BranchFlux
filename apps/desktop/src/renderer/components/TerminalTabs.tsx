@@ -131,10 +131,7 @@ export function TerminalTabs() {
 					disabled={!activeWorkspaceId}
 					onClick={() => {
 						if (!activeWorkspaceId) return;
-						const tabId = addTab(activeWorkspaceId, activeWorkspaceCwd);
-						window.electron.terminal.create(tabId, activeWorkspaceCwd).catch((err: Error) => {
-							console.error("Failed to create terminal:", err);
-						});
+						addTab(activeWorkspaceId, activeWorkspaceCwd);
 					}}
 					className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border-none bg-transparent text-[var(--text-quaternary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-tertiary)] disabled:opacity-30 disabled:cursor-default"
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
