@@ -23,12 +23,20 @@ function randomState(): string {
 	return randomBytes(32).toString("hex");
 }
 
-function waitForCallback(expectedState: string): Promise<string> {
-	return new Promise((resolve, reject) => {
+function startCallbackServer(expectedState: string): Promise<{ server: ReturnType<typeof createServer>; codePromise: Promise<string> }> {
+	return new Promise((resolveStart, rejectStart) => {
 		let timeoutId: ReturnType<typeof setTimeout>;
+		let resolveCode: (code: string) => void;
+		let rejectCode: (err: Error) => void;
+
+		const codePromise = new Promise<string>((res, rej) => {
+			resolveCode = res;
+			rejectCode = rej;
+		});
 
 		const server = createServer((req: IncomingMessage, res: ServerResponse) => {
 			const url = new URL(req.url ?? "/", `http://localhost:${OAUTH_CALLBACK_PORT}`);
+			console.log(`[oauth] Callback server received request: ${url.pathname}`);
 
 			if (url.pathname !== "/callback") {
 				res.writeHead(404);
@@ -47,27 +55,31 @@ function waitForCallback(expectedState: string): Promise<string> {
 			server.close();
 
 			if (error) {
-				reject(new Error(`OAuth error: ${error}`));
+				rejectCode(new Error(`OAuth error: ${error}`));
 			} else if (state !== expectedState) {
-				reject(new Error("OAuth state mismatch"));
+				rejectCode(new Error("OAuth state mismatch"));
 			} else if (!code) {
-				reject(new Error("No authorization code received"));
+				rejectCode(new Error("No authorization code received"));
 			} else {
-				resolve(code);
+				resolveCode(code);
 			}
 		});
 
 		server.on("error", (err) => {
-			reject(new Error(`Failed to start OAuth callback server: ${err.message}`));
+			rejectStart(new Error(`Failed to start OAuth callback server: ${err.message}`));
 		});
 
-		server.listen(OAUTH_CALLBACK_PORT);
+		server.listen(OAUTH_CALLBACK_PORT, () => {
+			console.log(`[oauth] Callback server listening on port ${OAUTH_CALLBACK_PORT}`);
 
-		// Timeout after 5 minutes
-		timeoutId = setTimeout(() => {
-			server.close();
-			reject(new Error("OAuth flow timed out"));
-		}, 5 * 60 * 1000);
+			// Timeout after 5 minutes
+			timeoutId = setTimeout(() => {
+				server.close();
+				rejectCode(new Error("OAuth flow timed out"));
+			}, 5 * 60 * 1000);
+
+			resolveStart({ server, codePromise });
+		});
 	});
 }
 
@@ -180,10 +192,14 @@ export async function connectJira(): Promise<void> {
 	oauthInProgress = true;
 	try {
 		const state = randomState();
-		const authUrl = `${JIRA_AUTH_URL}?audience=api.atlassian.com&client_id=${JIRA_CLIENT_ID}&scope=${encodeURIComponent(JIRA_SCOPES)}&redirect_uri=${encodeURIComponent(OAUTH_CALLBACK_URL)}&state=${state}&response_type=code&prompt=consent`;
+		const { codePromise } = await startCallbackServer(state);
 
+		const authUrl = `${JIRA_AUTH_URL}?audience=api.atlassian.com&client_id=${JIRA_CLIENT_ID}&scope=${encodeURIComponent(JIRA_SCOPES)}&redirect_uri=${encodeURIComponent(OAUTH_CALLBACK_URL)}&state=${state}&response_type=code&prompt=consent`;
+		console.log("[oauth] Opening Jira auth URL in browser");
 		shell.openExternal(authUrl);
-		const code = await waitForCallback(state);
+
+		const code = await codePromise;
+		console.log("[oauth] Jira auth code received, exchanging for tokens");
 		const tokens = await exchangeJiraCode(code);
 		const { cloudId, siteUrl } = await fetchJiraCloudId(tokens.access_token);
 		const user = await fetchJiraUser(tokens.access_token, cloudId);
@@ -198,6 +214,7 @@ export async function connectJira(): Promise<void> {
 			accountId: user.accountId,
 			displayName: user.displayName,
 		});
+		console.log("[oauth] Jira connected successfully");
 	} finally {
 		oauthInProgress = false;
 	}
@@ -208,10 +225,14 @@ export async function connectBitbucket(): Promise<void> {
 	oauthInProgress = true;
 	try {
 		const state = randomState();
-		const authUrl = `${BITBUCKET_AUTH_URL}?client_id=${BITBUCKET_CLIENT_ID}&response_type=code&state=${state}`;
+		const { codePromise } = await startCallbackServer(state);
 
+		const authUrl = `${BITBUCKET_AUTH_URL}?client_id=${BITBUCKET_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_CALLBACK_URL)}&response_type=code&state=${state}`;
+		console.log("[oauth] Opening Bitbucket auth URL in browser");
 		shell.openExternal(authUrl);
-		const code = await waitForCallback(state);
+
+		const code = await codePromise;
+		console.log("[oauth] Bitbucket auth code received, exchanging for tokens");
 		const tokens = await exchangeBitbucketCode(code);
 		const user = await fetchBitbucketUser(tokens.access_token);
 
@@ -223,6 +244,7 @@ export async function connectBitbucket(): Promise<void> {
 			accountId: user.accountId,
 			displayName: user.displayName,
 		});
+		console.log("[oauth] Bitbucket connected successfully");
 	} finally {
 		oauthInProgress = false;
 	}
