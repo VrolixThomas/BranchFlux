@@ -83,6 +83,20 @@ export default defineConfig({
 			alias: {
 				"@": resolve(__dirname, "src/renderer"),
 			},
+			dedupe: ["monaco-editor"],
+		},
+		optimizeDeps: {
+			exclude: [
+				"@codingame/monaco-vscode-api",
+				"@codingame/monaco-vscode-editor-service-override",
+				"@codingame/monaco-vscode-languages-service-override",
+				"@codingame/monaco-vscode-extensions-service-override",
+				"@codingame/monaco-vscode-textmate-service-override",
+				"@codingame/monaco-vscode-theme-service-override",
+			],
+		},
+		worker: {
+			format: "es" as const,
 		},
 		build: {
 			rollupOptions: {
