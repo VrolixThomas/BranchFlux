@@ -79,7 +79,7 @@ export function AtlassianPanel() {
 
 	return (
 		<div className="flex flex-col">
-			{status?.bitbucket.connected && (
+			{status?.bitbucket.connected ? (
 				<div>
 					<SectionHeader label="Pull Requests" isOpen={prOpen} onToggle={() => setPrOpen(!prOpen)} />
 					{prOpen && (
@@ -88,8 +88,19 @@ export function AtlassianPanel() {
 						</div>
 					)}
 				</div>
+			) : (
+				<div className="px-2 py-0.5">
+					<button
+						type="button"
+						onClick={() => connectMutation.mutate({ service: "bitbucket" })}
+						disabled={connectMutation.isPending}
+						className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 text-[12px] text-[var(--text-quaternary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-tertiary)]"
+					>
+						{connectMutation.isPending ? "Connecting..." : "Connect Bitbucket"}
+					</button>
+				</div>
 			)}
-			{status?.jira.connected && (
+			{status?.jira.connected ? (
 				<div>
 					<SectionHeader label="Jira" isOpen={jiraOpen} onToggle={() => setJiraOpen(!jiraOpen)} />
 					{jiraOpen && (
@@ -97,6 +108,17 @@ export function AtlassianPanel() {
 							<JiraIssueList />
 						</div>
 					)}
+				</div>
+			) : (
+				<div className="px-2 py-0.5">
+					<button
+						type="button"
+						onClick={() => connectMutation.mutate({ service: "jira" })}
+						disabled={connectMutation.isPending}
+						className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 text-[12px] text-[var(--text-quaternary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-tertiary)]"
+					>
+						{connectMutation.isPending ? "Connecting..." : "Connect Jira"}
+					</button>
 				</div>
 			)}
 			<div className="px-3 py-1">
