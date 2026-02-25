@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { AddRepositoryModal } from "./components/AddRepositoryModal";
 import { CreateWorktreeModal } from "./components/CreateWorktreeModal";
+import { FileTreePanel } from "./components/FileTreePanel";
+import { MainContentArea } from "./components/MainContentArea";
 import { Sidebar } from "./components/Sidebar";
-import { Terminal, scrollbackRegistry } from "./components/Terminal";
-import { TerminalTabs } from "./components/TerminalTabs";
+import { scrollbackRegistry } from "./components/Terminal";
+import { useDiffStore } from "./stores/diff";
 import { useTerminalStore } from "./stores/terminal";
 import { trpc } from "./trpc/client";
 
@@ -33,12 +35,9 @@ function collectSnapshot() {
 }
 
 export function App() {
-	const visibleTabs = useTerminalStore(useShallow((s) => s.getVisibleTabs()));
-	const activeTabId = useTerminalStore((s) => s.activeTabId);
-	const activeWorkspaceId = useTerminalStore((s) => s.activeWorkspaceId);
-
 	// Track scrollback per tab id for restored sessions
 	const [savedScrollback, setSavedScrollback] = useState<Record<string, string>>({});
+	const isPanelOpen = useDiffStore((s) => s.isPanelOpen);
 
 	const saveMutation = trpc.terminalSessions.save.useMutation();
 	const saveMutateRef = useRef(saveMutation.mutate);
@@ -104,35 +103,21 @@ export function App() {
 
 	return (
 		<>
-			<div className="flex h-screen bg-[var(--bg-base)]">
+			<div className="flex h-screen overflow-hidden bg-[var(--bg-base)]">
 				<Sidebar />
-				<main className="flex min-w-0 flex-1 flex-col">
-					<TerminalTabs />
-					<div className="relative flex-1 overflow-hidden">
-						{!activeWorkspaceId && (
-							<div className="flex h-full items-center justify-center text-[13px] text-[var(--text-quaternary)]">
-								Select a workspace to open a terminal
-							</div>
-						)}
-						{activeWorkspaceId && visibleTabs.length === 0 && (
-							<div className="flex h-full items-center justify-center text-[13px] text-[var(--text-quaternary)]">
-								No terminals open — click + to create one
-							</div>
-						)}
-						{visibleTabs.map((tab) => (
-							<div
-								key={tab.id}
-								className={`absolute inset-0 ${tab.id === activeTabId ? "visible" : "invisible"}`}
-							>
-								<Terminal
-									id={tab.id}
-									cwd={tab.cwd || undefined}
-									initialContent={savedScrollback[tab.id]}
-								/>
-							</div>
-						))}
-					</div>
-				</main>
+				{isPanelOpen ? (
+					<PanelGroup direction="horizontal" className="flex min-w-0 flex-1">
+						<Panel minSize={40}>
+							<MainContentArea savedScrollback={savedScrollback} />
+						</Panel>
+						<PanelResizeHandle className="w-px bg-[var(--bg-overlay)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
+						<Panel defaultSize={25} minSize={15} maxSize={40} className="flex flex-col overflow-hidden">
+							<FileTreePanel />
+						</Panel>
+					</PanelGroup>
+				) : (
+					<MainContentArea savedScrollback={savedScrollback} />
+				)}
 			</div>
 			<AddRepositoryModal />
 			<CreateWorktreeModal />
