@@ -187,3 +187,191 @@ export async function hasUncommittedChanges(repoPath: string): Promise<boolean> 
 	const status = await git.raw(["status", "--porcelain"]);
 	return status.trim().length > 0;
 }
+
+export interface DiffLine {
+	type: "context" | "added" | "removed";
+	content: string;
+	oldLineNumber?: number;
+	newLineNumber?: number;
+}
+
+export interface DiffHunk {
+	header: string;
+	oldStart: number;
+	oldLines: number;
+	newStart: number;
+	newLines: number;
+	lines: DiffLine[];
+}
+
+export interface DiffFile {
+	path: string;
+	oldPath?: string;
+	status: "added" | "modified" | "deleted" | "renamed" | "binary";
+	additions: number;
+	deletions: number;
+	hunks: DiffHunk[];
+}
+
+export interface DiffStats {
+	added: number;
+	removed: number;
+	changed: number;
+}
+
+export function parseUnifiedDiff(rawDiff: string): DiffFile[] {
+	if (!rawDiff.trim()) return [];
+
+	const files: DiffFile[] = [];
+	const blocks = rawDiff.split(/^diff --git /m).filter(Boolean);
+
+	for (const block of blocks) {
+		const lines = block.split("\n");
+		let lineIdx = 1; // skip the "a/... b/..." header line
+
+		let status: DiffFile["status"] = "modified";
+		let filePath = "";
+		let oldFilePath: string | undefined;
+
+		// Read file metadata until --- or @@
+		while (lineIdx < lines.length) {
+			const line = lines[lineIdx] ?? "";
+			if (line.startsWith("new file mode")) {
+				status = "added";
+			} else if (line.startsWith("deleted file mode")) {
+				status = "deleted";
+			} else if (line.startsWith("rename from ")) {
+				oldFilePath = line.slice("rename from ".length);
+				status = "renamed";
+			} else if (line.startsWith("rename to ")) {
+				filePath = line.slice("rename to ".length);
+			} else if (line.startsWith("Binary files")) {
+				status = "binary";
+			} else if (line.startsWith("--- ")) {
+				const p = line.slice(4);
+				if (p !== "/dev/null") {
+					oldFilePath = p.startsWith("a/") ? p.slice(2) : p;
+				}
+			} else if (line.startsWith("+++ ")) {
+				const p = line.slice(4);
+				if (p === "/dev/null") {
+					filePath = oldFilePath ?? "";
+				} else {
+					filePath = p.startsWith("b/") ? p.slice(2) : p;
+				}
+			} else if (line.startsWith("@@")) {
+				break;
+			}
+			lineIdx++;
+		}
+
+		const hunks: DiffHunk[] = [];
+		let additions = 0;
+		let deletions = 0;
+
+		while (lineIdx < lines.length) {
+			const line = lines[lineIdx] ?? "";
+			if (!line.startsWith("@@")) {
+				lineIdx++;
+				continue;
+			}
+
+			const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+			if (!hunkMatch) {
+				lineIdx++;
+				continue;
+			}
+
+			const oldStart = parseInt(hunkMatch[1] ?? "1", 10);
+			const oldLineCount = parseInt(hunkMatch[2] ?? "1", 10);
+			const newStart = parseInt(hunkMatch[3] ?? "1", 10);
+			const newLineCount = parseInt(hunkMatch[4] ?? "1", 10);
+			lineIdx++;
+
+			const hunkLines: DiffLine[] = [];
+			let oldNum = oldStart;
+			let newNum = newStart;
+
+			while (lineIdx < lines.length) {
+				const diffLine = lines[lineIdx] ?? "";
+				if (diffLine.startsWith("@@") || diffLine.startsWith("diff --git")) break;
+				if (diffLine.startsWith("+")) {
+					hunkLines.push({ type: "added", content: diffLine.slice(1), newLineNumber: newNum++ });
+					additions++;
+				} else if (diffLine.startsWith("-")) {
+					hunkLines.push({ type: "removed", content: diffLine.slice(1), oldLineNumber: oldNum++ });
+					deletions++;
+				} else if (diffLine.startsWith(" ")) {
+					// context line — explicitly space-prefixed
+					hunkLines.push({
+						type: "context",
+						content: diffLine.slice(1),
+						oldLineNumber: oldNum++,
+						newLineNumber: newNum++,
+					});
+				}
+				// skip backslash lines (e.g. "\ No newline at end of file") and blank separators
+				lineIdx++;
+			}
+
+			hunks.push({
+				header: line,
+				oldStart,
+				oldLines: oldLineCount,
+				newStart,
+				newLines: newLineCount,
+				lines: hunkLines,
+			});
+		}
+
+		if (filePath) {
+			files.push({
+				path: filePath,
+				oldPath: status === "renamed" ? oldFilePath : undefined,
+				status,
+				additions,
+				deletions,
+				hunks,
+			});
+		}
+	}
+
+	return files;
+}
+
+export function detectLanguage(filePath: string): string {
+	const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+	const map: Record<string, string> = {
+		ts: "typescript",
+		tsx: "typescript",
+		js: "javascript",
+		jsx: "javascript",
+		mjs: "javascript",
+		cjs: "javascript",
+		json: "json",
+		css: "css",
+		scss: "scss",
+		less: "less",
+		html: "html",
+		htm: "html",
+		md: "markdown",
+		mdx: "markdown",
+		py: "python",
+		go: "go",
+		rs: "rust",
+		java: "java",
+		rb: "ruby",
+		sh: "shell",
+		bash: "shell",
+		zsh: "shell",
+		yml: "yaml",
+		yaml: "yaml",
+		toml: "toml",
+		xml: "xml",
+		sql: "sql",
+		graphql: "graphql",
+		gql: "graphql",
+		dockerfile: "dockerfile",
+	};
+	return map[ext] ?? "plaintext";
+}
