@@ -70,6 +70,39 @@ export const sharedFilesRouter = router({
 		db.delete(sharedFiles).where(eq(sharedFiles.id, input.id)).run();
 	}),
 
+	addBatch: publicProcedure
+		.input(z.object({ projectId: z.string(), relativePaths: z.array(z.string().min(1)).min(1) }))
+		.mutation(({ input }) => {
+			const db = getDb();
+			const project = db.select().from(projects).where(eq(projects.id, input.projectId)).get();
+
+			if (!project) throw new Error("Project not found");
+
+			const added: Array<{ id: string; relativePath: string }> = [];
+			const skipped: string[] = [];
+
+			for (const relativePath of input.relativePaths) {
+				const fullPath = join(project.repoPath, relativePath);
+				if (!existsSync(fullPath)) {
+					skipped.push(relativePath);
+					continue;
+				}
+
+				const id = nanoid();
+				db.insert(sharedFiles)
+					.values({
+						id,
+						projectId: input.projectId,
+						relativePath,
+						createdAt: new Date(),
+					})
+					.run();
+				added.push({ id, relativePath });
+			}
+
+			return { added, skipped };
+		}),
+
 	discoverCandidates: publicProcedure
 		.input(z.object({ projectId: z.string() }))
 		.query(({ input }) => {
