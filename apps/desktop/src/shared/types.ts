@@ -35,3 +35,21 @@ export interface SessionAPI {
 export interface ShellAPI {
 	openExternal: (url: string) => Promise<void>;
 }
+
+export interface LspAPI {
+	sendRequest: (opts: {
+		languageId: string;
+		repoPath: string;
+		method: string;
+		params: unknown;
+	}) => Promise<{ result?: unknown; error?: string }>;
+	sendNotification: (opts: {
+		languageId: string;
+		repoPath: string;
+		method: string;
+		params: unknown;
+	}) => void;
+	onNotification: (
+		callback: (serverId: string, method: string, params: unknown) => void
+	) => () => void;
+}
