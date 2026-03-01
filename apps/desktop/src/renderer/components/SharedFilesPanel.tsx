@@ -56,7 +56,7 @@ function CandidateNode({
 	searchQuery: string;
 }) {
 	if (entry.type === "file") {
-		if (searchQuery && !entry.relativePath.toLowerCase().includes(searchQuery.toLowerCase())) {
+		if (searchQuery && !hasAnyMatch(entry, searchQuery)) {
 			return null;
 		}
 		return (
@@ -75,11 +75,10 @@ function CandidateNode({
 		);
 	}
 
-	if (searchQuery && !hasAnyMatch(entry, searchQuery)) return null;
+	const matchesSearch = hasAnyMatch(entry, searchQuery);
+	if (searchQuery && !matchesSearch) return null;
 
-	const isExpanded =
-		expandedPaths.has(entry.relativePath) ||
-		(searchQuery !== "" && hasAnyMatch(entry, searchQuery));
+	const isExpanded = expandedPaths.has(entry.relativePath) || (searchQuery !== "" && matchesSearch);
 	const fileCount = countFiles(entry);
 
 	return (
@@ -359,6 +358,7 @@ export function SharedFilesPanel() {
 								</span>
 								<input
 									type="search"
+									aria-label="Filter discovered files"
 									value={searchQuery}
 									onChange={(e) => setSearchQuery(e.target.value)}
 									placeholder="Filter..."
