@@ -129,7 +129,7 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 	deleteWorkspaceRef.current = deleteWorkspace.mutate;
 
 	const isActive = useTabStore((s) => s.activeWorkspaceId === workspace.id);
-	const openDiff = useTabStore((s) => s.openDiff);
+	const toggleDiffPanel = useTabStore((s) => s.toggleDiffPanel);
 
 	const handleClick = useCallback(() => {
 		const cwd =
@@ -208,7 +208,7 @@ export function WorkspaceItem({ workspace, projectName, projectRepoPath }: Works
 				type="button"
 				onClick={(e) => {
 					e.stopPropagation();
-					openDiff(workspace.id, {
+					toggleDiffPanel({
 						type: "working-tree",
 						repoPath:
 							workspace.type === "worktree" && workspace.worktreePath
