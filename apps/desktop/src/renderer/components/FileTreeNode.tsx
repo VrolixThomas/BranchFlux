@@ -49,7 +49,13 @@ function FileNode({
 	node,
 	diffCtx,
 	workspaceId,
-}: { node: TreeNode; diffCtx: DiffContext; workspaceId: string }) {
+	actionButton,
+}: {
+	node: TreeNode;
+	diffCtx: DiffContext;
+	workspaceId: string;
+	actionButton?: { icon: string; title: string; onClick: (path: string) => void };
+}) {
 	const activeTabId = useTabStore((s) => s.activeTabId);
 	const tabs = useTabStore((s) => s.tabs);
 	const openDiffFile = useTabStore((s) => s.openDiffFile);
@@ -67,7 +73,7 @@ function FileNode({
 			type="button"
 			onClick={handleClick}
 			className={[
-				"flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-[12px] transition-all duration-[120ms]",
+				"group flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-[12px] transition-all duration-[120ms]",
 				isActive
 					? "bg-[var(--bg-elevated)] text-[var(--text)]"
 					: "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]",
@@ -83,6 +89,19 @@ function FileNode({
 					<span className="ml-0.5 text-[var(--term-red)]">-{file.deletions}</span>
 				)}
 			</span>
+			{actionButton && (
+				<button
+					type="button"
+					title={actionButton.title}
+					onClick={(e) => {
+						e.stopPropagation();
+						actionButton.onClick(file.path);
+					}}
+					className="ml-0.5 shrink-0 rounded p-0.5 text-[11px] text-[var(--text-quaternary)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--text-secondary)]"
+				>
+					{actionButton.icon}
+				</button>
+			)}
 		</button>
 	);
 }
@@ -92,7 +111,14 @@ function FolderNode({
 	depth,
 	diffCtx,
 	workspaceId,
-}: { node: TreeNode; depth: number; diffCtx: DiffContext; workspaceId: string }) {
+	actionButton,
+}: {
+	node: TreeNode;
+	depth: number;
+	diffCtx: DiffContext;
+	workspaceId: string;
+	actionButton?: { icon: string; title: string; onClick: (path: string) => void };
+}) {
 	const [expanded, setExpanded] = useState(true);
 	const children = Object.values(node.children).sort((a, b) => {
 		const aIsFolder = Object.keys(a.children).length > 0;
@@ -117,7 +143,13 @@ function FolderNode({
 			{expanded &&
 				children.map((child) =>
 					child.file ? (
-						<FileNode key={child.path} node={child} diffCtx={diffCtx} workspaceId={workspaceId} />
+						<FileNode
+							key={child.path}
+							node={child}
+							diffCtx={diffCtx}
+							workspaceId={workspaceId}
+							actionButton={actionButton}
+						/>
 					) : (
 						<FolderNode
 							key={child.path}
@@ -125,6 +157,7 @@ function FolderNode({
 							depth={depth + 1}
 							diffCtx={diffCtx}
 							workspaceId={workspaceId}
+							actionButton={actionButton}
 						/>
 					)
 				)}
@@ -136,7 +169,76 @@ export function FileTree({
 	files,
 	diffCtx,
 	workspaceId,
-}: { files: DiffFile[]; diffCtx: DiffContext; workspaceId: string }) {
+	actionButton,
+}: {
+	files: DiffFile[];
+	diffCtx: DiffContext;
+	workspaceId: string;
+	actionButton?: { icon: string; title: string; onClick: (path: string) => void };
+}) {
 	const root = buildTree(files);
-	return <FolderNode node={root} depth={0} diffCtx={diffCtx} workspaceId={workspaceId} />;
+	return (
+		<FolderNode
+			node={root}
+			depth={0}
+			diffCtx={diffCtx}
+			workspaceId={workspaceId}
+			actionButton={actionButton}
+		/>
+	);
+}
+
+export function FileSection({
+	label,
+	files,
+	diffCtx,
+	workspaceId,
+	actionButton,
+	bulkAction,
+}: {
+	label: string;
+	files: DiffFile[];
+	diffCtx: DiffContext;
+	workspaceId: string;
+	actionButton?: { icon: string; title: string; onClick: (path: string) => void };
+	bulkAction?: { icon: string; title: string; onClick: () => void };
+}) {
+	const [expanded, setExpanded] = useState(true);
+
+	if (files.length === 0) return null;
+
+	return (
+		<div>
+			<div className="flex items-center gap-1 px-2 py-1">
+				<button
+					type="button"
+					onClick={() => setExpanded((e) => !e)}
+					className="flex flex-1 items-center gap-1 text-left text-[11px] font-medium uppercase tracking-wide text-[var(--text-quaternary)] hover:text-[var(--text-tertiary)]"
+				>
+					<span className="text-[10px]">{expanded ? "▾" : "▸"}</span>
+					<span className="truncate">
+						{label} ({files.length})
+					</span>
+				</button>
+				{bulkAction && (
+					<button
+						type="button"
+						title={bulkAction.title}
+						onClick={bulkAction.onClick}
+						className="shrink-0 rounded p-0.5 text-[11px] text-[var(--text-quaternary)] hover:text-[var(--text-secondary)]"
+					>
+						{bulkAction.icon}
+					</button>
+				)}
+			</div>
+			{expanded && (
+				<FileTree
+					files={files}
+					diffCtx={diffCtx}
+					workspaceId={workspaceId}
+					actionButton={actionButton}
+				/>
+			)}
+		</div>
+	);
 }
