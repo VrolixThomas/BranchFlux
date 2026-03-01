@@ -1,8 +1,6 @@
 import * as monaco from "monaco-editor";
 import { useEffect, useRef } from "react";
-
-const EDITOR_THEME = "branchflux-dark";
-let themeRegistered = false;
+import { EDITOR_THEME, ensureThemeRegistered } from "../lib/monacoTheme";
 
 interface DiffEditorProps {
 	original: string;
@@ -30,21 +28,7 @@ export function DiffEditor({
 	// Create the diff editor once on mount
 	useEffect(() => {
 		if (!containerRef.current) return;
-		if (!themeRegistered) {
-			monaco.editor.defineTheme(EDITOR_THEME, {
-				base: "vs-dark",
-				inherit: true,
-				rules: [],
-				colors: {
-					"editor.background": "#161618",
-					"diffEditor.insertedTextBackground": "#1a3a2a80",
-					"diffEditor.removedTextBackground": "#3a1a1a80",
-					"diffEditor.insertedLineBackground": "#1a3a2a40",
-					"diffEditor.removedLineBackground": "#3a1a1a40",
-				},
-			});
-			themeRegistered = true;
-		}
+		ensureThemeRegistered();
 		const editor = monaco.editor.createDiffEditor(containerRef.current, {
 			readOnly: false,
 			renderSideBySide,
