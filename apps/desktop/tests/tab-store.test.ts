@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { PANEL_CLOSED, diffContextsEqual, useTabStore } from "../src/renderer/stores/tab-store";
+import {
+	PANEL_CLOSED,
+	type RightPanelState,
+	diffContextsEqual,
+	useTabStore,
+} from "../src/renderer/stores/tab-store";
 import type { DiffContext } from "../src/shared/diff-types";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,6 +46,12 @@ const prCtxB: DiffContext = {
 	sourceBranch: "fix",
 	targetBranch: "main",
 };
+
+function assertPanelOpen(
+	panel: RightPanelState,
+): asserts panel is Extract<RightPanelState, { open: true }> {
+	expect(panel.open).toBe(true);
+}
 
 function resetStore() {
 	useTabStore.setState({
@@ -97,11 +108,9 @@ describe("toggleDiffPanel", () => {
 	test("opens panel when closed", () => {
 		useTabStore.getState().toggleDiffPanel(workingTreeCtx);
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.mode).toBe("diff");
-			expect(rightPanel.diffCtx).toEqual(workingTreeCtx);
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("diff");
+		expect(rightPanel.diffCtx).toEqual(workingTreeCtx);
 	});
 
 	test("closes panel when toggling same context", () => {
@@ -115,20 +124,16 @@ describe("toggleDiffPanel", () => {
 		useTabStore.getState().toggleDiffPanel(workingTreeCtx);
 		useTabStore.getState().toggleDiffPanel(branchCtxA);
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.diffCtx).toEqual(branchCtxA);
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.diffCtx).toEqual(branchCtxA);
 	});
 
 	test("switches to different PR instead of closing", () => {
 		useTabStore.getState().toggleDiffPanel(prCtxA);
 		useTabStore.getState().toggleDiffPanel(prCtxB);
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.diffCtx).toEqual(prCtxB);
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.diffCtx).toEqual(prCtxB);
 	});
 
 	test("closes same PR when toggling again", () => {
@@ -142,10 +147,17 @@ describe("toggleDiffPanel", () => {
 		useTabStore.getState().toggleDiffPanel(branchCtxA);
 		useTabStore.getState().toggleDiffPanel(branchCtxB);
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.diffCtx).toEqual(branchCtxB);
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.diffCtx).toEqual(branchCtxB);
+	});
+
+	test("switches from explorer mode to diff when toggling diff panel", () => {
+		useTabStore.getState().openExplorer();
+		useTabStore.getState().toggleDiffPanel(workingTreeCtx);
+		const { rightPanel } = useTabStore.getState();
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("diff");
+		expect(rightPanel.diffCtx).toEqual(workingTreeCtx);
 	});
 });
 
@@ -232,11 +244,9 @@ describe("openExplorer", () => {
 	test("opens panel in explorer mode", () => {
 		useTabStore.getState().openExplorer();
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.mode).toBe("explorer");
-			expect(rightPanel.diffCtx).toBeNull();
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("explorer");
+		expect(rightPanel.diffCtx).toBeNull();
 	});
 
 	test("toggles closed when already in explorer mode", () => {
@@ -250,11 +260,9 @@ describe("openExplorer", () => {
 		useTabStore.getState().toggleDiffPanel(workingTreeCtx);
 		useTabStore.getState().openExplorer();
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.mode).toBe("explorer");
-			expect(rightPanel.diffCtx).toEqual(workingTreeCtx);
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("explorer");
+		expect(rightPanel.diffCtx).toEqual(workingTreeCtx);
 	});
 });
 
@@ -268,27 +276,23 @@ describe("togglePanelMode", () => {
 		useTabStore.getState().openExplorer();
 		useTabStore.getState().togglePanelMode();
 		const { rightPanel } = useTabStore.getState();
-		expect(rightPanel.open).toBe(true);
-		if (rightPanel.open) {
-			expect(rightPanel.mode).toBe("diff");
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("diff");
 	});
 
 	test("does not switch to diff when no diffCtx", () => {
 		useTabStore.getState().openExplorer();
 		useTabStore.getState().togglePanelMode();
 		const { rightPanel } = useTabStore.getState();
-		if (rightPanel.open) {
-			expect(rightPanel.mode).toBe("explorer");
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("explorer");
 	});
 
 	test("switches from diff to explorer", () => {
 		useTabStore.getState().toggleDiffPanel(workingTreeCtx);
 		useTabStore.getState().togglePanelMode();
 		const { rightPanel } = useTabStore.getState();
-		if (rightPanel.open) {
-			expect(rightPanel.mode).toBe("explorer");
-		}
+		assertPanelOpen(rightPanel);
+		expect(rightPanel.mode).toBe("explorer");
 	});
 });
