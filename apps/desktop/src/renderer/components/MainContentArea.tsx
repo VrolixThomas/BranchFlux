@@ -2,7 +2,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useTabStore } from "../stores/tab-store";
 import { DiffFileTab } from "./DiffFileTab";
 import { FileEditor } from "./FileEditor";
-import { FileTreeContent } from "./FileTreeContent";
 import { TabBar } from "./TabBar";
 import { Terminal } from "./Terminal";
 
@@ -69,16 +68,6 @@ export function MainContentArea({ savedScrollback }: MainContentAreaProps) {
 							repoPath={activeTab.repoPath}
 							filePath={activeTab.filePath}
 							language={activeTab.language}
-						/>
-					</div>
-				)}
-
-				{activeTab?.kind === "file-tree" && (
-					<div className="absolute inset-0">
-						<FileTreeContent
-							key={`tree:${activeTab.diffCtx.repoPath}`}
-							diffCtx={activeTab.diffCtx}
-							workspaceId={activeTab.workspaceId}
 						/>
 					</div>
 				)}
