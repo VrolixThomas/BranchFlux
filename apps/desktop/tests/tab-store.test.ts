@@ -296,3 +296,49 @@ describe("togglePanelMode", () => {
 		expect(rightPanel.mode).toBe("explorer");
 	});
 });
+
+// ── openFile ─────────────────────────────────────────────────────────────────
+
+describe("openFile", () => {
+	beforeEach(resetStore);
+
+	test("opens a new file tab", () => {
+		const { openFile, setActiveWorkspace } = useTabStore.getState();
+		setActiveWorkspace("ws-1", "/repo");
+		const id = openFile("ws-1", "/repo", "src/main.ts", "typescript");
+		const { tabs, activeTabId } = useTabStore.getState();
+		expect(tabs).toHaveLength(1);
+		expect(activeTabId).toBe(id);
+		const tab = tabs[0]!;
+		expect(tab.kind).toBe("file");
+		if (tab.kind === "file") {
+			expect(tab.filePath).toBe("src/main.ts");
+			expect(tab.repoPath).toBe("/repo");
+		}
+	});
+
+	test("deduplicates by repoPath + filePath", () => {
+		const { openFile } = useTabStore.getState();
+		const id1 = openFile("ws-1", "/repo", "src/main.ts", "typescript");
+		const id2 = openFile("ws-1", "/repo", "src/main.ts", "typescript");
+		expect(id1).toBe(id2);
+		expect(useTabStore.getState().tabs).toHaveLength(1);
+	});
+
+	test("opens different files as separate tabs", () => {
+		const { openFile } = useTabStore.getState();
+		openFile("ws-1", "/repo", "src/main.ts", "typescript");
+		openFile("ws-1", "/repo", "src/util.ts", "typescript");
+		expect(useTabStore.getState().tabs).toHaveLength(2);
+	});
+
+	test("updates initialPosition on existing tab", () => {
+		const { openFile } = useTabStore.getState();
+		openFile("ws-1", "/repo", "src/main.ts", "typescript");
+		openFile("ws-1", "/repo", "src/main.ts", "typescript", { lineNumber: 10, column: 5 });
+		const tab = useTabStore.getState().tabs[0]!;
+		if (tab.kind === "file") {
+			expect(tab.initialPosition).toEqual({ lineNumber: 10, column: 5 });
+		}
+	});
+});

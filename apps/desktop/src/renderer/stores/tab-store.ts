@@ -22,6 +22,7 @@ export type TabItem =
 			filePath: string;
 			title: string;
 			language: string;
+			initialPosition?: { lineNumber: number; column: number };
 	  };
 export type PanelMode = "diff" | "explorer";
 
@@ -69,6 +70,13 @@ interface TabStore {
 		language: string
 	) => string;
 	closeDiff: (workspaceId: string, repoPath: string) => void;
+	openFile: (
+		workspaceId: string,
+		repoPath: string,
+		filePath: string,
+		language: string,
+		initialPosition?: { lineNumber: number; column: number },
+	) => string;
 	setDiffMode: (mode: "split" | "inline") => void;
 
 	// Session restore
@@ -96,6 +104,10 @@ function nextFileTabId(): string {
 
 function diffFileKey(diffCtx: DiffContext, filePath: string): string {
 	return `diff-file:${diffCtx.repoPath}:${filePath}`;
+}
+
+function fileKey(repoPath: string, filePath: string): string {
+	return `file:${repoPath}:${filePath}`;
 }
 
 // ─── DiffContext identity comparison ─────────────────────────────────────────
@@ -299,6 +311,51 @@ export const useTabStore = create<TabStore>((set, get) => ({
 				...(closePanel ? { rightPanel: PANEL_CLOSED } : {}),
 			};
 		});
+	},
+
+	openFile: (workspaceId, repoPath, filePath, language, initialPosition) => {
+		const { tabs } = get();
+		const key = fileKey(repoPath, filePath);
+		const existing = tabs.find(
+			(t) =>
+				t.kind === "file" &&
+				t.workspaceId === workspaceId &&
+				fileKey(t.repoPath, t.filePath) === key
+		);
+		if (existing) {
+			// If reopening with a new position, update the tab
+			if (initialPosition && existing.kind === "file") {
+				set((s) => ({
+					tabs: s.tabs.map((t) =>
+						t.id === existing.id && t.kind === "file"
+							? { ...t, initialPosition }
+							: t
+					),
+					activeTabId: existing.id,
+				}));
+			} else {
+				set({ activeTabId: existing.id });
+			}
+			return existing.id;
+		}
+
+		const id = nextFileTabId();
+		const title = filePath.split("/").pop() ?? filePath;
+		const tab: TabItem = {
+			kind: "file",
+			id,
+			workspaceId,
+			repoPath,
+			filePath,
+			title,
+			language,
+			initialPosition,
+		};
+		set((s) => ({
+			tabs: [...s.tabs, tab],
+			activeTabId: id,
+		}));
+		return id;
 	},
 
 	setDiffMode: (mode) => set({ diffMode: mode }),
