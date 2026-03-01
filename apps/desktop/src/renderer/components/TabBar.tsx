@@ -17,26 +17,6 @@ function TabIcon({ kind }: { kind: TabItem["kind"] }) {
 			<span className="shrink-0 h-[6px] w-[6px] rounded-full bg-[var(--term-yellow)] opacity-70" />
 		);
 	}
-	if (kind === "file-tree") {
-		return (
-			<svg
-				aria-hidden="true"
-				width="11"
-				height="11"
-				viewBox="0 0 16 16"
-				fill="none"
-				className="shrink-0 text-[var(--text-quaternary)]"
-			>
-				<path
-					d="M2 3h5l2 2h5v8H2V3z"
-					stroke="currentColor"
-					strokeWidth="1.3"
-					strokeLinejoin="round"
-					fill="none"
-				/>
-			</svg>
-		);
-	}
 	// "file" kind — no special icon
 	return null;
 }
@@ -129,7 +109,6 @@ export function TabBar() {
 	const setActiveTab = useTabStore((s) => s.setActiveTab);
 	const removeTab = useTabStore((s) => s.removeTab);
 	const addTerminalTab = useTabStore((s) => s.addTerminalTab);
-	const closeDiff = useTabStore((s) => s.closeDiff);
 	const activeWorkspaceId = useTabStore((s) => s.activeWorkspaceId);
 	const activeWorkspaceCwd = useTabStore((s) => s.activeWorkspaceCwd);
 
@@ -163,10 +142,6 @@ export function TabBar() {
 										detachMutation.mutate({
 											workspaceId: tab.workspaceId,
 										});
-									}
-									if (tab.kind === "file-tree" && activeWorkspaceId) {
-										closeDiff(activeWorkspaceId, tab.diffCtx.repoPath);
-										return;
 									}
 									removeTab(tab.id);
 								}}
