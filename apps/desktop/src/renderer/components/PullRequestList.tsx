@@ -17,8 +17,7 @@ export function PullRequestList() {
 		}
 	);
 
-	const openDiff = useTabStore((s) => s.openDiff);
-	const activeWorkspaceId = useTabStore((s) => s.activeWorkspaceId);
+	const toggleDiffPanel = useTabStore((s) => s.toggleDiffPanel);
 
 	const isLoading = loadingMy || loadingReviews;
 	const totalCount = (myPRs?.length ?? 0) + (reviewPRs?.length ?? 0);
@@ -55,7 +54,7 @@ export function PullRequestList() {
 							<button
 								type="button"
 								onClick={() =>
-									openDiff(activeWorkspaceId ?? "", {
+									toggleDiffPanel({
 										type: "pr",
 										prId: pr.id,
 										workspaceSlug: pr.workspace,
@@ -98,7 +97,7 @@ export function PullRequestList() {
 							<button
 								type="button"
 								onClick={() =>
-									openDiff(activeWorkspaceId ?? "", {
+									toggleDiffPanel({
 										type: "pr",
 										prId: pr.id,
 										workspaceSlug: pr.workspace,
