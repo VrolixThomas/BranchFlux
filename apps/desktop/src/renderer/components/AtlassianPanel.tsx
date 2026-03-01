@@ -28,7 +28,13 @@ function SectionHeader({
 				fill="none"
 				className={`shrink-0 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
 			>
-				<path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+				<path
+					d="M3 1.5L7 5L3 8.5"
+					stroke="currentColor"
+					strokeWidth="1.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+				/>
 			</svg>
 			<span>{label}</span>
 			{count !== undefined && count > 0 && (
@@ -81,7 +87,11 @@ export function AtlassianPanel() {
 		<div className="flex flex-col">
 			{status?.bitbucket.connected ? (
 				<div>
-					<SectionHeader label="Pull Requests" isOpen={prOpen} onToggle={() => setPrOpen(!prOpen)} />
+					<SectionHeader
+						label="Pull Requests"
+						isOpen={prOpen}
+						onToggle={() => setPrOpen(!prOpen)}
+					/>
 					{prOpen && (
 						<div className="px-2">
 							<PullRequestList />

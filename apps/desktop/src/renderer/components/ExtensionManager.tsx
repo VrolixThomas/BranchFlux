@@ -25,7 +25,10 @@ export function ExtensionManager({ onClose }: ExtensionManagerProps) {
 	}
 
 	return (
-		<div className="absolute inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
+		<div
+			className="absolute inset-0 z-50 flex items-end justify-center bg-black/50"
+			onClick={onClose}
+		>
 			<div
 				className="w-full rounded-t-[10px] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-[var(--shadow-md)]"
 				onClick={(e) => e.stopPropagation()}
@@ -55,10 +58,7 @@ export function ExtensionManager({ onClose }: ExtensionManagerProps) {
 					{extensions?.map((ext) => {
 						const name = ext.path.split("/").pop() ?? ext.path;
 						return (
-							<div
-								key={ext.id}
-								className="flex items-center gap-2 rounded py-1.5 text-[12px]"
-							>
+							<div key={ext.id} className="flex items-center gap-2 rounded py-1.5 text-[12px]">
 								<button
 									type="button"
 									onClick={() => toggleMutation.mutate({ id: ext.id, enabled: !ext.enabled })}

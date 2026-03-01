@@ -17,6 +17,9 @@ index abc1234..def5678 100644
 		const files = parseUnifiedDiff(DIFF);
 		const hunk = files[0]!.hunks[0]!;
 		console.log("Total lines in hunk:", hunk.lines.length);
-		console.log("Line types:", hunk.lines.map((l, i) => `[${i}] ${l.type}: "${l.content}"`));
+		console.log(
+			"Line types:",
+			hunk.lines.map((l, i) => `[${i}] ${l.type}: "${l.content}"`)
+		);
 	});
 });

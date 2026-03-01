@@ -45,70 +45,70 @@ index abc1234..def5678 100644
  line 3
 `;
 describe("parseUnifiedDiff", () => {
-    test("returns empty array for empty input", () => {
-        expect(parseUnifiedDiff("")).toEqual([]);
-        expect(parseUnifiedDiff("   ")).toEqual([]);
-    });
-    test("parses a modified file", () => {
-        const files = parseUnifiedDiff(MODIFIED_FILE_DIFF);
-        expect(files).toHaveLength(1);
-        const file = files[0];
-        expect(file.path).toBe("src/foo.ts");
-        expect(file.status).toBe("modified");
-        expect(file.additions).toBe(2);
-        expect(file.deletions).toBe(1);
-        expect(file.hunks).toHaveLength(1);
-    });
-    test("parses hunk lines correctly", () => {
-        const files = parseUnifiedDiff(MODIFIED_FILE_DIFF);
-        const hunk = files[0].hunks[0];
-        const addedLines = hunk.lines.filter((l) => l.type === "added");
-        const removedLines = hunk.lines.filter((l) => l.type === "removed");
-        const contextLines = hunk.lines.filter((l) => l.type === "context");
-        expect(addedLines).toHaveLength(2);
-        expect(removedLines).toHaveLength(1);
-        expect(contextLines).toHaveLength(3);
-    });
-    test("parses an added file", () => {
-        const files = parseUnifiedDiff(NEW_FILE_DIFF);
-        expect(files).toHaveLength(1);
-        const file = files[0];
-        expect(file.path).toBe("src/bar.ts");
-        expect(file.status).toBe("added");
-        expect(file.additions).toBe(3);
-        expect(file.deletions).toBe(0);
-        expect(file.oldPath).toBeUndefined();
-    });
-    test("parses a deleted file", () => {
-        const files = parseUnifiedDiff(DELETED_FILE_DIFF);
-        expect(files).toHaveLength(1);
-        const file = files[0];
-        expect(file.path).toBe("src/old.ts");
-        expect(file.status).toBe("deleted");
-        expect(file.additions).toBe(0);
-        expect(file.deletions).toBe(2);
-    });
-    test("parses a renamed file", () => {
-        const files = parseUnifiedDiff(RENAMED_FILE_DIFF);
-        expect(files).toHaveLength(1);
-        const file = files[0];
-        expect(file.path).toBe("src/new-name.ts");
-        expect(file.oldPath).toBe("src/old-name.ts");
-        expect(file.status).toBe("renamed");
-    });
-    test("parses multiple files", () => {
-        const files = parseUnifiedDiff(MODIFIED_FILE_DIFF + NEW_FILE_DIFF);
-        expect(files).toHaveLength(2);
-    });
-    test("assigns correct line numbers", () => {
-        const files = parseUnifiedDiff(MODIFIED_FILE_DIFF);
-        const hunk = files[0].hunks[0];
-        const firstContext = hunk.lines.find((l) => l.type === "context");
-        expect(firstContext.oldLineNumber).toBe(1);
-        expect(firstContext.newLineNumber).toBe(1);
-        const removed = hunk.lines.find((l) => l.type === "removed");
-        expect(removed.oldLineNumber).toBe(2);
-        const added = hunk.lines.find((l) => l.type === "added");
-        expect(added.newLineNumber).toBe(2);
-    });
+	test("returns empty array for empty input", () => {
+		expect(parseUnifiedDiff("")).toEqual([]);
+		expect(parseUnifiedDiff("   ")).toEqual([]);
+	});
+	test("parses a modified file", () => {
+		const files = parseUnifiedDiff(MODIFIED_FILE_DIFF);
+		expect(files).toHaveLength(1);
+		const file = files[0];
+		expect(file.path).toBe("src/foo.ts");
+		expect(file.status).toBe("modified");
+		expect(file.additions).toBe(2);
+		expect(file.deletions).toBe(1);
+		expect(file.hunks).toHaveLength(1);
+	});
+	test("parses hunk lines correctly", () => {
+		const files = parseUnifiedDiff(MODIFIED_FILE_DIFF);
+		const hunk = files[0].hunks[0];
+		const addedLines = hunk.lines.filter((l) => l.type === "added");
+		const removedLines = hunk.lines.filter((l) => l.type === "removed");
+		const contextLines = hunk.lines.filter((l) => l.type === "context");
+		expect(addedLines).toHaveLength(2);
+		expect(removedLines).toHaveLength(1);
+		expect(contextLines).toHaveLength(3);
+	});
+	test("parses an added file", () => {
+		const files = parseUnifiedDiff(NEW_FILE_DIFF);
+		expect(files).toHaveLength(1);
+		const file = files[0];
+		expect(file.path).toBe("src/bar.ts");
+		expect(file.status).toBe("added");
+		expect(file.additions).toBe(3);
+		expect(file.deletions).toBe(0);
+		expect(file.oldPath).toBeUndefined();
+	});
+	test("parses a deleted file", () => {
+		const files = parseUnifiedDiff(DELETED_FILE_DIFF);
+		expect(files).toHaveLength(1);
+		const file = files[0];
+		expect(file.path).toBe("src/old.ts");
+		expect(file.status).toBe("deleted");
+		expect(file.additions).toBe(0);
+		expect(file.deletions).toBe(2);
+	});
+	test("parses a renamed file", () => {
+		const files = parseUnifiedDiff(RENAMED_FILE_DIFF);
+		expect(files).toHaveLength(1);
+		const file = files[0];
+		expect(file.path).toBe("src/new-name.ts");
+		expect(file.oldPath).toBe("src/old-name.ts");
+		expect(file.status).toBe("renamed");
+	});
+	test("parses multiple files", () => {
+		const files = parseUnifiedDiff(MODIFIED_FILE_DIFF + NEW_FILE_DIFF);
+		expect(files).toHaveLength(2);
+	});
+	test("assigns correct line numbers", () => {
+		const files = parseUnifiedDiff(MODIFIED_FILE_DIFF);
+		const hunk = files[0].hunks[0];
+		const firstContext = hunk.lines.find((l) => l.type === "context");
+		expect(firstContext.oldLineNumber).toBe(1);
+		expect(firstContext.newLineNumber).toBe(1);
+		const removed = hunk.lines.find((l) => l.type === "removed");
+		expect(removed.oldLineNumber).toBe(2);
+		const added = hunk.lines.find((l) => l.type === "added");
+		expect(added.newLineNumber).toBe(2);
+	});
 });

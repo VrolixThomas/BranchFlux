@@ -14,7 +14,11 @@ export const atlassianRouter = router({
 				? { connected: true as const, displayName: jira.displayName, accountId: jira.accountId }
 				: { connected: false as const },
 			bitbucket: bitbucket
-				? { connected: true as const, displayName: bitbucket.displayName, accountId: bitbucket.accountId }
+				? {
+						connected: true as const,
+						displayName: bitbucket.displayName,
+						accountId: bitbucket.accountId,
+					}
 				: { connected: false as const },
 		};
 	}),

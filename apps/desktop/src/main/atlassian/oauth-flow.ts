@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 import { shell } from "electron";
 import { saveAuth } from "./auth";
 import {
@@ -7,8 +7,8 @@ import {
 	BITBUCKET_CLIENT_ID,
 	BITBUCKET_CLIENT_SECRET,
 	BITBUCKET_TOKEN_URL,
-	JIRA_AUTH_URL,
 	JIRA_ACCESSIBLE_RESOURCES_URL,
+	JIRA_AUTH_URL,
 	JIRA_CLIENT_ID,
 	JIRA_CLIENT_SECRET,
 	JIRA_SCOPES,
@@ -23,7 +23,9 @@ function randomState(): string {
 	return randomBytes(32).toString("hex");
 }
 
-function startCallbackServer(expectedState: string): Promise<{ server: ReturnType<typeof createServer>; codePromise: Promise<string> }> {
+function startCallbackServer(
+	expectedState: string
+): Promise<{ server: ReturnType<typeof createServer>; codePromise: Promise<string> }> {
 	return new Promise((resolveStart, rejectStart) => {
 		let timeoutId: ReturnType<typeof setTimeout>;
 		let resolveCode: (code: string) => void;
@@ -73,10 +75,13 @@ function startCallbackServer(expectedState: string): Promise<{ server: ReturnTyp
 			console.log(`[oauth] Callback server listening on port ${OAUTH_CALLBACK_PORT}`);
 
 			// Timeout after 5 minutes
-			timeoutId = setTimeout(() => {
-				server.close();
-				rejectCode(new Error("OAuth flow timed out"));
-			}, 5 * 60 * 1000);
+			timeoutId = setTimeout(
+				() => {
+					server.close();
+					rejectCode(new Error("OAuth flow timed out"));
+				},
+				5 * 60 * 1000
+			);
 
 			resolveStart({ server, codePromise });
 		});
@@ -110,7 +115,9 @@ async function exchangeBitbucketCode(code: string): Promise<{
 	refresh_token: string;
 	expires_in: number;
 }> {
-	const credentials = Buffer.from(`${BITBUCKET_CLIENT_ID}:${BITBUCKET_CLIENT_SECRET}`).toString("base64");
+	const credentials = Buffer.from(`${BITBUCKET_CLIENT_ID}:${BITBUCKET_CLIENT_SECRET}`).toString(
+		"base64"
+	);
 	const res = await fetch(BITBUCKET_TOKEN_URL, {
 		method: "POST",
 		headers: {
@@ -150,19 +157,19 @@ async function fetchJiraCloudId(accessToken: string): Promise<{
 	return { cloudId: site.id, siteUrl: site.url };
 }
 
-async function fetchJiraUser(accessToken: string, cloudId: string): Promise<{
+async function fetchJiraUser(
+	accessToken: string,
+	cloudId: string
+): Promise<{
 	accountId: string;
 	displayName: string;
 }> {
-	const res = await fetch(
-		`https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/myself`,
-		{
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				Accept: "application/json",
-			},
-		}
-	);
+	const res = await fetch(`https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/myself`, {
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+			Accept: "application/json",
+		},
+	});
 	if (!res.ok) {
 		throw new Error(`Failed to fetch Jira user: ${res.status}`);
 	}

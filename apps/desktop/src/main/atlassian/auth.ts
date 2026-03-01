@@ -110,7 +110,9 @@ async function refreshBitbucketToken(refreshToken: string): Promise<{
 	refresh_token: string;
 	expires_in: number;
 }> {
-	const credentials = Buffer.from(`${BITBUCKET_CLIENT_ID}:${BITBUCKET_CLIENT_SECRET}`).toString("base64");
+	const credentials = Buffer.from(`${BITBUCKET_CLIENT_ID}:${BITBUCKET_CLIENT_SECRET}`).toString(
+		"base64"
+	);
 	const res = await fetch(BITBUCKET_TOKEN_URL, {
 		method: "POST",
 		headers: {
@@ -190,7 +192,11 @@ export async function getValidToken(service: Service): Promise<string | null> {
  * Throws if not connected or refresh fails.
  * Automatically cleans up auth on 401 responses.
  */
-export async function atlassianFetch(service: Service, url: string, init?: RequestInit): Promise<Response> {
+export async function atlassianFetch(
+	service: Service,
+	url: string,
+	init?: RequestInit
+): Promise<Response> {
 	const token = await getValidToken(service);
 	if (!token) {
 		throw new Error(`Not connected to ${service}`);

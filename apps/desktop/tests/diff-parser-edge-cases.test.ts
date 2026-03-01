@@ -21,12 +21,12 @@ index abc1234..def5678 100644
 		expect(file.status).toBe("modified");
 		expect(file.additions).toBe(1);
 		expect(file.deletions).toBe(1);
-		
+
 		const hunk = file.hunks[0]!;
-		const contextLines = hunk.lines.filter(l => l.type === "context");
-		const addedLines = hunk.lines.filter(l => l.type === "added");
-		const removedLines = hunk.lines.filter(l => l.type === "removed");
-		
+		const contextLines = hunk.lines.filter((l) => l.type === "context");
+		const addedLines = hunk.lines.filter((l) => l.type === "added");
+		const removedLines = hunk.lines.filter((l) => l.type === "removed");
+
 		// Should have 1 context line "line 1", 1 removed "line 2", 1 added "line 2 modified"
 		// The backslash lines should NOT be counted as context lines
 		expect(contextLines).toHaveLength(1);

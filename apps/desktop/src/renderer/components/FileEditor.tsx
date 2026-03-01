@@ -17,7 +17,7 @@ export function FileEditor({ repoPath, filePath, language }: FileEditorProps) {
 
 	const { data, isLoading } = trpc.diff.getFileContent.useQuery(
 		{ repoPath, ref: "HEAD", filePath },
-		{ staleTime: 30_000 },
+		{ staleTime: 30_000 }
 	);
 
 	// Create editor once on mount
@@ -40,7 +40,7 @@ export function FileEditor({ repoPath, filePath, language }: FileEditorProps) {
 			editor.dispose();
 			editorRef.current = null;
 		};
-	// biome-ignore lint/correctness/useExhaustiveDependencies: editor created once on mount
+		// biome-ignore lint/correctness/useExhaustiveDependencies: editor created once on mount
 	}, []);
 
 	// Load content into editor when query data arrives or language changes
@@ -66,7 +66,7 @@ export function FileEditor({ repoPath, filePath, language }: FileEditorProps) {
 			if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 			model.dispose();
 		};
-	// biome-ignore lint/correctness/useExhaustiveDependencies: saveMutation identity is stable
+		// biome-ignore lint/correctness/useExhaustiveDependencies: saveMutation identity is stable
 	}, [data, language, repoPath, filePath]);
 
 	if (isLoading) {

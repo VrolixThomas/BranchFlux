@@ -12,7 +12,8 @@ export const OAUTH_CALLBACK_URL = `http://localhost:${OAUTH_CALLBACK_PORT}/callb
 
 export const JIRA_AUTH_URL = "https://auth.atlassian.com/authorize";
 export const JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token";
-export const JIRA_ACCESSIBLE_RESOURCES_URL = "https://api.atlassian.com/oauth/token/accessible-resources";
+export const JIRA_ACCESSIBLE_RESOURCES_URL =
+	"https://api.atlassian.com/oauth/token/accessible-resources";
 
 export const BITBUCKET_AUTH_URL = "https://bitbucket.org/site/oauth2/authorize";
 export const BITBUCKET_TOKEN_URL = "https://bitbucket.org/site/oauth2/access_token";

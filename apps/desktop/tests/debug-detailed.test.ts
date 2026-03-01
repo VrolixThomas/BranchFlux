@@ -21,12 +21,14 @@ index abc1234..def5678 100644
 		rawDiff.split("\n").forEach((line, i) => {
 			console.log(`[${i}] ${JSON.stringify(line)}`);
 		});
-		
+
 		const files = parseUnifiedDiff(rawDiff);
 		const hunk = files[0]!.hunks[0]!;
 		console.log("\nParsed hunk lines:");
 		hunk.lines.forEach((line, i) => {
-			console.log(`[${i}] type=${line.type}, content="${line.content}", old=${line.oldLineNumber}, new=${line.newLineNumber}`);
+			console.log(
+				`[${i}] type=${line.type}, content="${line.content}", old=${line.oldLineNumber}, new=${line.newLineNumber}`
+			);
 		});
 	});
 });
