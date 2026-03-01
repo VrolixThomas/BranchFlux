@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
 	DialogAPI,
+	LspAPI,
 	SessionAPI,
 	SessionSaveData,
 	ShellAPI,
@@ -52,10 +53,28 @@ const shellAPI: ShellAPI = {
 	openExternal: (url: string) => ipcRenderer.invoke("shell:openExternal", url),
 };
 
+const lspAPI: LspAPI = {
+	sendRequest: (opts) => ipcRenderer.invoke("lsp:request", opts),
+	sendNotification: (opts) => ipcRenderer.send("lsp:notification", opts),
+	onNotification: (callback) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			serverId: string,
+			method: string,
+			params: unknown
+		) => {
+			callback(serverId, method, params);
+		};
+		ipcRenderer.on("lsp:notification-from-server", handler);
+		return () => ipcRenderer.removeListener("lsp:notification-from-server", handler);
+	},
+};
+
 contextBridge.exposeInMainWorld("electron", {
 	terminal: terminalAPI,
 	trpc: trpcAPI,
 	dialog: dialogAPI,
 	session: sessionAPI,
 	shell: shellAPI,
+	lsp: lspAPI,
 });
