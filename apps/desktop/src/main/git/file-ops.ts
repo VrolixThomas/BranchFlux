@@ -13,7 +13,7 @@ export async function readWorkingTreeFile(repoPath: string, filePath: string): P
 export async function saveWorkingTreeFile(
 	repoPath: string,
 	filePath: string,
-	content: string,
+	content: string
 ): Promise<void> {
 	const fullPath = join(repoPath, filePath);
 	await mkdir(dirname(fullPath), { recursive: true });

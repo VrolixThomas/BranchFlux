@@ -1,5 +1,5 @@
-import { describe, test, expect, afterEach } from "bun:test";
-import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readWorkingTreeFile, saveWorkingTreeFile } from "../src/main/git/file-ops";
 

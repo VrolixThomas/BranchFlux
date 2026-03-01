@@ -76,7 +76,7 @@ export const diffRouter = router({
 				repoPath: z.string(),
 				filePath: z.string(),
 				content: z.string(),
-			}),
+			})
 		)
 		.mutation(async ({ input }) => {
 			await saveWorkingTreeFile(input.repoPath, input.filePath, input.content);

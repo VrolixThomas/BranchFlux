@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { DialogAPI, SessionAPI, SessionSaveData, ShellAPI, TerminalAPI, TrpcAPI } from "../shared/types";
+import type {
+	DialogAPI,
+	SessionAPI,
+	SessionSaveData,
+	ShellAPI,
+	TerminalAPI,
+	TrpcAPI,
+} from "../shared/types";
 
 function createDispatcher<T extends unknown[]>(channel: string) {
 	const listeners = new Map<string, (...args: T) => void>();
