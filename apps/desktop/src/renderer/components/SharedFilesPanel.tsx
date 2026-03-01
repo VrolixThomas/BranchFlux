@@ -49,6 +49,14 @@ export function SharedFilesPanel() {
 		},
 	});
 
+	const addBatchMutation = trpc.sharedFiles.addBatch.useMutation({
+		onSuccess: () => {
+			setSelectedCandidates(new Set());
+			utils.sharedFiles.list.invalidate();
+			utils.sharedFiles.discoverCandidates.invalidate();
+		},
+	});
+
 	const removeMutation = trpc.sharedFiles.remove.useMutation({
 		onSuccess: () => {
 			utils.sharedFiles.list.invalidate();
@@ -89,10 +97,11 @@ export function SharedFilesPanel() {
 	}
 
 	function handleAddSelected() {
-		for (const path of selectedCandidates) {
-			addMutation.mutate({ projectId: projectId!, relativePath: path });
-		}
-		setSelectedCandidates(new Set());
+		if (!projectId || selectedCandidates.size === 0) return;
+		addBatchMutation.mutate({
+			projectId,
+			relativePaths: [...selectedCandidates],
+		});
 	}
 
 	function handleManualAdd(e: React.FormEvent) {
@@ -156,6 +165,20 @@ export function SharedFilesPanel() {
 
 				{/* Scrollable content */}
 				<div className="flex-1 overflow-y-auto px-4">
+					{/* Error display */}
+					{(addMutation.isError ||
+						addBatchMutation.isError ||
+						removeMutation.isError ||
+						syncMutation.isError) && (
+						<div className="pb-3">
+							<p className="text-[12px] text-[var(--term-red)]">
+								{addMutation.error?.message ??
+									addBatchMutation.error?.message ??
+									removeMutation.error?.message ??
+									syncMutation.error?.message}
+							</p>
+						</div>
+					)}
 					{/* Active shared files */}
 					{activeFiles.length > 0 && (
 						<div className="pb-3">
@@ -224,7 +247,7 @@ export function SharedFilesPanel() {
 								<button
 									type="button"
 									onClick={handleAddSelected}
-									disabled={addMutation.isPending}
+									disabled={addBatchMutation.isPending}
 									className="mt-2 rounded-[var(--radius-sm)] bg-[var(--accent)] px-3 py-1.5 text-[12px] font-medium text-white transition-all duration-[120ms] hover:bg-[var(--accent-hover)] disabled:opacity-50"
 								>
 									Add Selected ({selectedCandidates.size})
@@ -284,13 +307,6 @@ export function SharedFilesPanel() {
 						{syncMutation.isPending ? "Syncing..." : "Sync All Worktrees"}
 					</button>
 				</div>
-
-				{/* Error display */}
-				{addMutation.isError && (
-					<div className="px-4 pb-3">
-						<p className="text-[12px] text-[var(--term-red)]">{addMutation.error.message}</p>
-					</div>
-				)}
 			</div>
 		</div>
 	);
