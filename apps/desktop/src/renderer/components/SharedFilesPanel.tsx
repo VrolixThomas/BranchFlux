@@ -18,12 +18,108 @@ function CheckboxButton({ checked, onClick }: { checked: boolean; onClick: () =>
 	);
 }
 
+type CandidateEntry = {
+	name: string;
+	relativePath: string;
+	type: "file" | "directory";
+	children?: CandidateEntry[];
+};
+
+function countFiles(entry: CandidateEntry): number {
+	if (entry.type === "file") return 1;
+	if (!entry.children) return 0;
+	return entry.children.reduce((sum, child) => sum + countFiles(child), 0);
+}
+
+function CandidateNode({
+	entry,
+	depth,
+	selectedCandidates,
+	toggleCandidate,
+	expandedPaths,
+	toggleExpanded,
+}: {
+	entry: CandidateEntry;
+	depth: number;
+	selectedCandidates: Set<string>;
+	toggleCandidate: (path: string) => void;
+	expandedPaths: Set<string>;
+	toggleExpanded: (path: string) => void;
+}) {
+	if (entry.type === "file") {
+		return (
+			<div
+				className="flex items-center gap-2 px-3 py-1.5 text-[12px] border-b border-[var(--border-subtle)] last:border-b-0"
+				style={{ paddingLeft: `${12 + depth * 16}px` }}
+			>
+				<CheckboxButton
+					checked={selectedCandidates.has(entry.relativePath)}
+					onClick={() => toggleCandidate(entry.relativePath)}
+				/>
+				<span className="flex-1 truncate font-[var(--font-mono)] text-[var(--text-tertiary)]">
+					{entry.name}
+				</span>
+			</div>
+		);
+	}
+
+	const isExpanded = expandedPaths.has(entry.relativePath);
+	const fileCount = countFiles(entry);
+
+	return (
+		<>
+			<button
+				type="button"
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] border-b border-[var(--border-subtle)] last:border-b-0 cursor-pointer transition-all duration-[120ms] hover:bg-[var(--bg-elevated)]"
+				style={{ paddingLeft: `${12 + depth * 16}px` }}
+				onClick={() => toggleExpanded(entry.relativePath)}
+			>
+				<svg
+					aria-hidden="true"
+					width="10"
+					height="10"
+					viewBox="0 0 10 10"
+					className={`shrink-0 text-[var(--text-quaternary)] transition-transform duration-[120ms] ${isExpanded ? "rotate-90" : ""}`}
+				>
+					<path
+						d="M3 1l4 4-4 4"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					/>
+				</svg>
+				<span className="flex-1 truncate font-[var(--font-mono)] text-[var(--text-secondary)]">
+					{entry.name}/
+				</span>
+				<span className="shrink-0 rounded-full bg-[var(--bg-overlay)] px-1.5 py-0.5 text-[10px] tabular-nums text-[var(--text-quaternary)]">
+					{fileCount}
+				</span>
+			</button>
+			{isExpanded &&
+				entry.children?.map((child) => (
+					<CandidateNode
+						key={child.relativePath}
+						entry={child}
+						depth={depth + 1}
+						selectedCandidates={selectedCandidates}
+						toggleCandidate={toggleCandidate}
+						expandedPaths={expandedPaths}
+						toggleExpanded={toggleExpanded}
+					/>
+				))}
+		</>
+	);
+}
+
 export function SharedFilesPanel() {
 	const projectId = useProjectStore((s) => s.sharedFilesProjectId);
 	const closePanel = useProjectStore((s) => s.closeSharedFilesPanel);
 
 	const [manualPath, setManualPath] = useState("");
 	const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
+	const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
 	const utils = trpc.useUtils();
 
@@ -71,6 +167,7 @@ export function SharedFilesPanel() {
 	useEffect(() => {
 		setManualPath("");
 		setSelectedCandidates(new Set());
+		setExpandedPaths(new Set());
 	}, [projectId]);
 
 	// Escape key to close
@@ -87,6 +184,18 @@ export function SharedFilesPanel() {
 
 	function toggleCandidate(path: string) {
 		setSelectedCandidates((prev) => {
+			const next = new Set(prev);
+			if (next.has(path)) {
+				next.delete(path);
+			} else {
+				next.add(path);
+			}
+			return next;
+		});
+	}
+
+	function toggleExpanded(path: string) {
+		setExpandedPaths((prev) => {
 			const next = new Set(prev);
 			if (next.has(path)) {
 				next.delete(path);
@@ -229,19 +338,16 @@ export function SharedFilesPanel() {
 								Discovered
 							</div>
 							<div className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] max-h-48 overflow-y-auto">
-								{candidates.map((path) => (
-									<div
-										key={path}
-										className="flex items-center gap-2 px-3 py-1.5 text-[12px] border-b border-[var(--border-subtle)] last:border-b-0"
-									>
-										<CheckboxButton
-											checked={selectedCandidates.has(path)}
-											onClick={() => toggleCandidate(path)}
-										/>
-										<span className="flex-1 truncate font-[var(--font-mono)] text-[var(--text-tertiary)]">
-											{path}
-										</span>
-									</div>
+								{candidates.map((entry) => (
+									<CandidateNode
+										key={entry.relativePath}
+										entry={entry}
+										depth={0}
+										selectedCandidates={selectedCandidates}
+										toggleCandidate={toggleCandidate}
+										expandedPaths={expandedPaths}
+										toggleExpanded={toggleExpanded}
+									/>
 								))}
 							</div>
 							{selectedCandidates.size > 0 && (
