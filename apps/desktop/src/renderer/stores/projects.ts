@@ -6,12 +6,15 @@ interface ProjectStore {
 	isAddModalOpen: boolean;
 	isCreateWorktreeModalOpen: boolean;
 	createWorktreeProjectId: string | null;
+	sharedFilesProjectId: string | null;
 	selectProject: (id: string | null) => void;
 	toggleProjectExpanded: (id: string) => void;
 	openAddModal: () => void;
 	closeAddModal: () => void;
 	openCreateWorktreeModal: (projectId: string) => void;
 	closeCreateWorktreeModal: () => void;
+	openSharedFilesPanel: (projectId: string) => void;
+	closeSharedFilesPanel: () => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set) => ({
@@ -20,6 +23,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
 	isAddModalOpen: false,
 	isCreateWorktreeModalOpen: false,
 	createWorktreeProjectId: null,
+	sharedFilesProjectId: null,
 
 	selectProject: (id) => set({ selectedProjectId: id }),
 
@@ -41,4 +45,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
 		set({ isCreateWorktreeModalOpen: true, createWorktreeProjectId: projectId }),
 	closeCreateWorktreeModal: () =>
 		set({ isCreateWorktreeModalOpen: false, createWorktreeProjectId: null }),
+
+	openSharedFilesPanel: (projectId) => set({ sharedFilesProjectId: projectId }),
+	closeSharedFilesPanel: () => set({ sharedFilesProjectId: null }),
 }));
