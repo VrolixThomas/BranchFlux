@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import ignore from "ignore";
 import {
 	type CandidateEntry,
 	buildCandidateTree,
@@ -175,5 +176,31 @@ describe("buildSmartCandidateTree", () => {
 		expect(result).toHaveLength(2);
 		const names = result.map((e) => e.name).sort();
 		expect(names).toEqual([".turbo", "dist"]);
+	});
+});
+
+describe("buildSmartCandidateTree with ignore library (dist/ pattern)", () => {
+	test("groups files when gitignore uses trailing-slash directory pattern", () => {
+		// The ignore library returns false for ig.ignores("dist") when the pattern is "dist/"
+		// The isIgnoredDir callback must test with a trailing slash to handle this correctly.
+		const ig = ignore().add("dist/");
+		const isIgnoredDir = (p: string) => ig.ignores(p) || ig.ignores(`${p}/`);
+
+		const result = buildSmartCandidateTree(["dist/index.js", "dist/utils.js"], isIgnoredDir);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]?.name).toBe("dist");
+		expect(result[0]?.type).toBe("directory");
+		expect(result[0]?.children).toHaveLength(2);
+	});
+
+	test("groups files when gitignore uses plain directory pattern (no trailing slash)", () => {
+		const ig = ignore().add("dist");
+		const isIgnoredDir = (p: string) => ig.ignores(p) || ig.ignores(`${p}/`);
+
+		const result = buildSmartCandidateTree(["dist/index.js", "dist/utils.js"], isIgnoredDir);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]?.name).toBe("dist");
 	});
 });

@@ -1,5 +1,6 @@
 import { existsSync, lstatSync, mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { assertPathInsideRepo } from "./path-utils";
 
 export interface SharedFileEntry {
 	relativePath: string;
@@ -19,6 +20,17 @@ export async function symlinkSharedFiles(
 	const results: SymlinkResult[] = [];
 
 	for (const entry of entries) {
+		try {
+			assertPathInsideRepo(repoPath, entry.relativePath);
+		} catch (err) {
+			results.push({
+				relativePath: entry.relativePath,
+				status: "error",
+				error: err instanceof Error ? err.message : String(err),
+			});
+			continue;
+		}
+
 		const source = join(repoPath, entry.relativePath);
 		const target = join(worktreePath, entry.relativePath);
 
