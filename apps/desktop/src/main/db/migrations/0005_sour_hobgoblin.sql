@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `shared_files_project_path_unique` ON `shared_files` (`project_id`,`relative_path`);

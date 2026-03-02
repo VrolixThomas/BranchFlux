@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getDb } from "../../db";
 import { projects, sharedFiles, worktrees } from "../../db/schema";
+import { assertPathInsideRepo } from "../../path-utils";
 import { symlinkSharedFiles } from "../../shared-files";
 import { buildSmartCandidateTree } from "../build-candidate-tree";
 import { publicProcedure, router } from "../index";
@@ -48,6 +49,8 @@ export const sharedFilesRouter = router({
 
 			if (!project) throw new Error("Project not found");
 
+			assertPathInsideRepo(project.repoPath, input.relativePath);
+
 			const fullPath = join(project.repoPath, input.relativePath);
 			if (!existsSync(fullPath)) {
 				throw new Error(`File not found: ${input.relativePath}`);
@@ -83,6 +86,12 @@ export const sharedFilesRouter = router({
 			const skipped: string[] = [];
 
 			for (const relativePath of input.relativePaths) {
+				try {
+					assertPathInsideRepo(project.repoPath, relativePath);
+				} catch {
+					skipped.push(relativePath);
+					continue;
+				}
 				const fullPath = join(project.repoPath, relativePath);
 				if (!existsSync(fullPath)) {
 					skipped.push(relativePath);
@@ -129,7 +138,10 @@ export const sharedFilesRouter = router({
 			const existingSet = new Set(existing.map((e) => e.relativePath));
 
 			const filtered = ignoredFiles.filter((f) => !existingSet.has(f)).sort();
-			return buildSmartCandidateTree(filtered, (p) => ig.ignores(p));
+			// Test both `p` and `p/` because `.gitignore` often uses trailing-slash directory
+			// patterns (e.g. `dist/`) where ig.ignores("dist") returns false but
+			// ig.ignores("dist/") returns true.
+			return buildSmartCandidateTree(filtered, (p) => ig.ignores(p) || ig.ignores(`${p}/`));
 		}),
 
 	sync: publicProcedure

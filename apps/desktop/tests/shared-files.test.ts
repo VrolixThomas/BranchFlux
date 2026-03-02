@@ -2,7 +2,41 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { assertPathInsideRepo } from "../src/main/path-utils";
 import { type SharedFileEntry, symlinkSharedFiles } from "../src/main/shared-files";
+
+describe("assertPathInsideRepo", () => {
+	test("allows a simple filename", () => {
+		expect(() => assertPathInsideRepo("/repo", ".env")).not.toThrow();
+	});
+
+	test("allows a nested path", () => {
+		expect(() => assertPathInsideRepo("/repo", "apps/desktop/.env")).not.toThrow();
+	});
+
+	test("rejects .. traversal that escapes the repo", () => {
+		expect(() => assertPathInsideRepo("/repo", "../../etc/passwd")).toThrow(
+			"Path must be inside the repository"
+		);
+	});
+
+	test("rejects a single .. that goes to the parent", () => {
+		expect(() => assertPathInsideRepo("/repo", "..")).toThrow("Path must be inside the repository");
+	});
+
+	test("rejects an absolute path outside the repo", () => {
+		expect(() => assertPathInsideRepo("/repo", "/etc/passwd")).toThrow(
+			"Path must be inside the repository"
+		);
+	});
+
+	test("rejects a path that traverses up through the repo root", () => {
+		// a/../../../etc resolves to /etc — outside /repo
+		expect(() => assertPathInsideRepo("/repo", "a/../../../etc/passwd")).toThrow(
+			"Path must be inside the repository"
+		);
+	});
+});
 
 describe("symlinkSharedFiles", () => {
 	const testDir = join(realpathSync(tmpdir()), `branchflux-shared-${Date.now()}`);

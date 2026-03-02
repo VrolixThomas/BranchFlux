@@ -358,7 +358,8 @@ export function SharedFilesPanel() {
 										<button
 											type="button"
 											onClick={() => removeMutation.mutate({ id: file.id })}
-											className="shrink-0 h-6 w-6 rounded-[5px] flex items-center justify-center opacity-0 group-hover/active:opacity-100 transition-all duration-100 text-[rgba(255,255,255,0.25)] hover:text-[#ff453a] hover:bg-[rgba(255,69,58,0.12)]"
+											disabled={removeMutation.isPending || addMutation.isPending}
+											className="shrink-0 h-6 w-6 rounded-[5px] flex items-center justify-center opacity-0 group-hover/active:opacity-100 transition-all duration-100 text-[rgba(255,255,255,0.25)] hover:text-[#ff453a] hover:bg-[rgba(255,69,58,0.12)] disabled:pointer-events-none"
 											title="Remove from shared files"
 										>
 											<svg aria-hidden="true" width="9" height="9" viewBox="0 0 9 9" fill="none">
@@ -481,7 +482,16 @@ export function SharedFilesPanel() {
 				<div className="flex items-center justify-between border-t border-[rgba(255,255,255,0.06)] px-6 py-4 shrink-0">
 					<p className="text-[12px] text-[rgba(255,255,255,0.25)]">
 						{syncMutation.isSuccess
-							? `Synced ${syncMutation.data.synced} worktree${syncMutation.data.synced === 1 ? "" : "s"}`
+							? (() => {
+									const created = syncMutation.data.results
+										.flatMap((r) => r.results)
+										.filter((r) => r.status === "created").length;
+									const wt = syncMutation.data.synced;
+									const wtLabel = `${wt} worktree${wt === 1 ? "" : "s"}`;
+									return created > 0
+										? `Synced ${wtLabel} — ${created} link${created === 1 ? "" : "s"} created`
+										: `Synced ${wtLabel} — already up to date`;
+								})()
 							: "Symlinks created on worktree creation"}
 					</p>
 					<button
