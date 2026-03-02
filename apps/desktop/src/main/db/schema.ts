@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const projects = sqliteTable("projects", {
 	id: text("id").primaryKey(),
@@ -109,3 +109,21 @@ export const extensionPaths = sqliteTable("extension_paths", {
 
 export type ExtensionPath = typeof extensionPaths.$inferSelect;
 export type NewExtensionPath = typeof extensionPaths.$inferInsert;
+
+export const sharedFiles = sqliteTable(
+	"shared_files",
+	{
+		id: text("id").primaryKey(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		relativePath: text("relative_path").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("shared_files_project_path_unique").on(table.projectId, table.relativePath),
+	]
+);
+
+export type SharedFile = typeof sharedFiles.$inferSelect;
+export type NewSharedFile = typeof sharedFiles.$inferInsert;
