@@ -3,6 +3,7 @@ import { useTabStore } from "../stores/tab-store";
 import { trpc } from "../trpc/client";
 import { type BranchIssue, CreateBranchFromIssueModal } from "./CreateBranchFromIssueModal";
 import { IssueContextMenu } from "./IssueContextMenu";
+import { StateIcon } from "./StateIcon";
 import { type LinkedWorkspace, WorkspacePopover } from "./WorkspacePopover";
 
 export function LinearIssueList() {
@@ -178,11 +179,7 @@ export function LinearIssueList() {
 										: `${issue.identifier}: ${issue.title}`
 								}
 							>
-								{/* Status dot */}
-								<span
-									className="h-2 w-2 shrink-0 rounded-full"
-									style={{ backgroundColor: issue.stateColor }}
-								/>
+								<StateIcon type={issue.stateType} color={issue.stateColor} />
 								<span className="shrink-0 font-medium text-[var(--text-quaternary)]">
 									{issue.identifier}
 								</span>
