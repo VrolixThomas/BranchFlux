@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTabStore } from "../stores/tab-store";
 import { trpc } from "../trpc/client";
 import { type BranchIssue, CreateBranchFromIssueModal } from "./CreateBranchFromIssueModal";
@@ -37,6 +37,15 @@ export function LinearIssueList() {
 		staleTime: 30_000,
 		refetchInterval: 60_000,
 	});
+
+	// Prefetch team states so the context menu state picker never shows "Loading..."
+	useEffect(() => {
+		if (!issues) return;
+		const teamIds = new Set(issues.map((i) => i.teamId));
+		for (const teamId of teamIds) {
+			utils.linear.getTeamStates.prefetch({ teamId }, { staleTime: 5 * 60_000 });
+		}
+	}, [issues, utils]);
 
 	// Linked issues → Map<linearIssueId, LinkedWorkspace[]>
 	const { data: linkedIssues } = trpc.linear.getLinkedIssues.useQuery(undefined, {

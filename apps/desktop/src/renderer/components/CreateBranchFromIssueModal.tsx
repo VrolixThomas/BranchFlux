@@ -57,13 +57,14 @@ export function CreateBranchFromIssueModal({ issue, onClose }: Props) {
 	);
 
 	const attachTerminal = trpc.workspaces.attachTerminal.useMutation();
-	const linkIssueMutation = trpc.linear.linkIssue.useMutation();
+	const linkIssueMutation = trpc.linear.linkIssue.useMutation({
+		onSuccess: () => utils.linear.getLinkedIssues.invalidate(),
+	});
 
 	const createMutation = trpc.workspaces.create.useMutation({
 		onSuccess: (workspace) => {
 			if (issue) {
 				linkIssueMutation.mutate({ workspaceId: workspace.id, linearIssueId: issue.id });
-				utils.linear.getLinkedIssues.invalidate();
 			}
 			utils.workspaces.listByProject.invalidate();
 
