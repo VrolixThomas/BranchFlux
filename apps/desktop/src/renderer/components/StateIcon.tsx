@@ -1,5 +1,7 @@
+import type { WorkflowStateType } from "../../main/linear/linear";
+
 interface StateIconProps {
-	type: string;
+	type: WorkflowStateType | string;
 	color: string;
 	size?: number;
 }
