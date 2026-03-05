@@ -132,7 +132,7 @@ export async function getAssignedIssues(teamId?: string): Promise<LinearIssue[]>
 				pageInfo: { hasNextPage: boolean; endCursor: string | null };
 			};
 		}>(
-			`query AssignedIssues($cursor: String, $teamId: String) {
+			`query AssignedIssues($cursor: String${teamId ? ", $teamId: String" : ""}) {
 				issues(
 					first: 50
 					after: $cursor
@@ -146,7 +146,7 @@ export async function getAssignedIssues(teamId?: string): Promise<LinearIssue[]>
 					pageInfo { hasNextPage endCursor }
 				}
 			}`,
-			{ cursor, teamId: teamId ?? null }
+			teamId ? { cursor, teamId } : { cursor }
 		);
 
 		allNodes.push(...data.issues.nodes);
