@@ -39,16 +39,11 @@ export function IssueContextMenu({
 		console.error("getTeamStates failed:", statesError.message, "teamId:", issue.teamId);
 	}
 
-	// Reset adjusted position when position prop changes
-	useEffect(() => {
-		setAdjusted(position);
-	}, [position]);
-
-	// Viewport clamping
+	// Viewport clamping — runs once per position change
 	useEffect(() => {
 		if (!menuRef.current) return;
 		const rect = menuRef.current.getBoundingClientRect();
-		let { x, y } = adjusted;
+		let { x, y } = position;
 
 		if (x + rect.width > window.innerWidth) {
 			x = window.innerWidth - rect.width - 8;
@@ -57,10 +52,12 @@ export function IssueContextMenu({
 			y = window.innerHeight - rect.height - 8;
 		}
 
-		if (x !== adjusted.x || y !== adjusted.y) {
+		if (x !== position.x || y !== position.y) {
 			setAdjusted({ x, y });
+		} else {
+			setAdjusted(position);
 		}
-	}, [adjusted]);
+	}, [position]);
 
 	// Click outside → close
 	useEffect(() => {
