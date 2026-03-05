@@ -2,6 +2,14 @@ import { linearFetch } from "./auth";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
+export type WorkflowStateType =
+	| "triage"
+	| "backlog"
+	| "unstarted"
+	| "started"
+	| "completed"
+	| "cancelled";
+
 export interface LinearTeam {
 	id: string;
 	name: string;
@@ -12,7 +20,7 @@ export interface LinearWorkflowState {
 	id: string;
 	name: string;
 	color: string;
-	type: string;
+	type: WorkflowStateType;
 	position: number;
 }
 
@@ -24,7 +32,7 @@ export interface LinearIssue {
 	stateId: string;
 	stateName: string;
 	stateColor: string;
-	stateType: string;
+	stateType: WorkflowStateType;
 	teamId: string;
 	teamName: string;
 }
@@ -41,7 +49,7 @@ interface RawStateNode {
 	id: string;
 	name: string;
 	color: string;
-	type: string;
+	type: WorkflowStateType;
 	position: number;
 }
 
@@ -50,7 +58,7 @@ interface RawIssueNode {
 	identifier: string;
 	title: string;
 	url: string;
-	state: { id: string; name: string; color: string; type: string };
+	state: { id: string; name: string; color: string; type: WorkflowStateType };
 	team: { id: string; name: string };
 }
 
