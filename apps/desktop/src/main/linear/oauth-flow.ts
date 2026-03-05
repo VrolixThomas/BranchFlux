@@ -4,6 +4,7 @@ import { shell } from "electron";
 import { acquireOAuthLock, releaseOAuthLock } from "../oauth-lock";
 import { saveAuth } from "./auth";
 import {
+	LINEAR_API_URL,
 	LINEAR_AUTH_URL,
 	LINEAR_CLIENT_ID,
 	LINEAR_CLIENT_SECRET,
@@ -104,7 +105,7 @@ async function exchangeCode(code: string): Promise<{
 }
 
 async function fetchViewer(accessToken: string): Promise<{ id: string; name: string }> {
-	const res = await fetch("https://api.linear.app/graphql", {
+	const res = await fetch(LINEAR_API_URL, {
 		method: "POST",
 		headers: {
 			Authorization: `Bearer ${accessToken}`,
