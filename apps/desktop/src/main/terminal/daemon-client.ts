@@ -28,10 +28,24 @@ export class DaemonClient {
 	// Sessions that were attached (background PTYs) rather than freshly created.
 	// These must not be killed on dispose — they survive tab close and app restarts.
 	private attachedSessions = new Set<string>();
+	private reconnecting = false;
+	private reconnectAttempts = 0;
+	private maxReconnectAttempts = 10;
+	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+	private dbPath: string | undefined;
+	private daemonScriptPath: string | undefined;
+	private onConnectionStatusChange: ((connected: boolean) => void) | null = null;
 
 	constructor(private socketPath: string = DEFAULT_SOCKET_PATH) {}
 
+	setConnectionStatusCallback(cb: (connected: boolean) => void): void {
+		this.onConnectionStatusChange = cb;
+	}
+
 	async connect(dbPath?: string, daemonScriptPath?: string): Promise<void> {
+		this.dbPath = dbPath;
+		this.daemonScriptPath = daemonScriptPath;
+
 		try {
 			await this.tryConnect();
 		} catch {
@@ -54,9 +68,17 @@ export class DaemonClient {
 				this.liveSessions.add(s.id);
 			}
 		}
+
+		this.reconnectAttempts = 0;
+		this.onConnectionStatusChange?.(true);
 	}
 
 	disconnect(): void {
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer);
+			this.reconnectTimer = null;
+		}
+		this.reconnecting = false;
 		this.socket?.destroy();
 		this.socket = null;
 	}
@@ -119,6 +141,42 @@ export class DaemonClient {
 		this.send({ type: "dispose", id });
 	}
 
+	private attemptReconnect(): void {
+		if (this.reconnecting || this.isQuitting) return;
+		this.reconnecting = true;
+		this.reconnectAttempts++;
+
+		if (this.reconnectAttempts > this.maxReconnectAttempts) {
+			console.error("[daemon-client] max reconnection attempts reached, giving up");
+			this.reconnecting = false;
+			return;
+		}
+
+		const backoffMs = Math.min(1_000 * 2 ** (this.reconnectAttempts - 1), 30_000);
+		console.log(
+			`[daemon-client] reconnecting in ${backoffMs}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`
+		);
+
+		this.reconnectTimer = setTimeout(async () => {
+			try {
+				this.socket?.destroy();
+				this.socket = null;
+				this.lineBuffer = "";
+				this.pendingListeners.clear();
+
+				await this.connect(this.dbPath, this.daemonScriptPath);
+
+				this.reconnecting = false;
+				this.reconnectAttempts = 0;
+				console.log("[daemon-client] reconnected to daemon");
+			} catch (err) {
+				console.error("[daemon-client] reconnection failed:", err);
+				this.reconnecting = false;
+				this.attemptReconnect();
+			}
+		}, backoffMs);
+	}
+
 	private send(msg: ClientMessage): void {
 		if (this.socket && !this.socket.destroyed) {
 			const ok = this.socket.write(`${JSON.stringify(msg)}\n`);
@@ -156,6 +214,8 @@ export class DaemonClient {
 
 		this.socket.on("close", () => {
 			console.warn("[daemon-client] connection to daemon lost");
+			this.onConnectionStatusChange?.(false);
+			this.attemptReconnect();
 		});
 
 		this.socket.on("error", (err) => {
