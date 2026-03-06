@@ -96,4 +96,24 @@ describe("DaemonClient", () => {
 		expect(combined).toContain('"create"');
 		expect(combined).toContain('"new-term"');
 	});
+
+	test("reconnects after daemon connection is lost", async () => {
+		// Destroy the current daemon server to simulate crash
+		const sock = daemon.lastSocket();
+		sock?.destroy();
+		daemon.server.close();
+
+		// Wait for client to detect close
+		await new Promise<void>((r) => setTimeout(r, 200));
+
+		// Start new mock daemon on same socket
+		if (existsSync(TEST_SOCKET)) rmSync(TEST_SOCKET);
+		daemon = await startMockDaemon();
+
+		// Wait for reconnection (first attempt at 1s backoff)
+		await new Promise<void>((r) => setTimeout(r, 2_000));
+
+		// After reconnect, client should have refreshed session list
+		expect(client.hasLiveSession("term-1")).toBe(true);
+	}, 10_000);
 });
