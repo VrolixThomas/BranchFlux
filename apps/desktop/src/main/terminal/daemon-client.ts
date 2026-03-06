@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, openSync, readFileSync, rmSync } from "node:fs";
 import { type Socket, connect } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -239,9 +239,11 @@ export class DaemonClient {
 			} catch {}
 		}
 
+		const logPath = join(BRANCHFLUX_DIR, "daemon.log");
+		const logFd = openSync(logPath, "a");
 		const child = spawn(process.execPath, [daemonScriptPath], {
 			detached: true,
-			stdio: "ignore",
+			stdio: ["ignore", logFd, logFd],
 			env: {
 				...process.env,
 				ELECTRON_RUN_AS_NODE: "1",
