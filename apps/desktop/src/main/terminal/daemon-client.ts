@@ -121,7 +121,10 @@ export class DaemonClient {
 
 	private send(msg: ClientMessage): void {
 		if (this.socket && !this.socket.destroyed) {
-			this.socket.write(`${JSON.stringify(msg)}\n`);
+			const ok = this.socket.write(`${JSON.stringify(msg)}\n`);
+			if (!ok) {
+				console.warn("[daemon-client] socket backpressure detected");
+			}
 		}
 	}
 
