@@ -72,7 +72,11 @@ export class PtyManager {
 		});
 
 		ptyProcess.onExit(({ exitCode }) => {
-			const finalBuffer = entry.buffer; // capture before delete
+			// Guard: only act if this PTY is still the active one for this id.
+			// A dispose() followed by create() with the same id can replace the entry
+			// before this callback fires, and we must not delete or notify for the new one.
+			if (this.terminals.get(id) !== entry) return;
+			const finalBuffer = entry.buffer;
 			this.terminals.delete(id);
 			for (const cb of entry.exitListeners.values()) cb(exitCode, finalBuffer);
 		});
