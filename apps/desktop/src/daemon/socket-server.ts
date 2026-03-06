@@ -167,7 +167,10 @@ export class SocketServer {
 
 	private send(socket: Socket, msg: DaemonMessage): void {
 		if (!socket.destroyed) {
-			socket.write(`${JSON.stringify(msg)}\n`);
+			const ok = socket.write(`${JSON.stringify(msg)}\n`);
+			if (!ok) {
+				console.warn("[socket-server] socket backpressure detected");
+			}
 		}
 	}
 }
