@@ -70,7 +70,7 @@ function PRRow({
 	pr: GitHubPR;
 	linked: LinkedWorkspace[] | undefined;
 	onLink: (pr: GitHubPR) => void;
-	onNavigate: (ws: LinkedWorkspace) => void;
+	onNavigate: (ws: LinkedWorkspace, pr: GitHubPR) => void;
 	onShowPopover: (pr: GitHubPR, workspaces: LinkedWorkspace[], rect: DOMRect) => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
@@ -86,7 +86,7 @@ function PRRow({
 					if (!isLinked) {
 						onLink(pr);
 					} else if (linked.length === 1 && linked[0]) {
-						onNavigate(linked[0]);
+						onNavigate(linked[0], pr);
 					} else {
 						onShowPopover(pr, linked, e.currentTarget.getBoundingClientRect());
 					}
@@ -184,7 +184,7 @@ function PRRow({
 						className="flex w-full items-center px-3 py-1.5 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]"
 						onClick={() => {
 							setContextMenu(null);
-							window.open(pr.url, "_blank");
+							window.electron.shell.openExternal(pr.url);
 						}}
 					>
 						Open on GitHub
@@ -260,9 +260,20 @@ export function GitHubPRList() {
 	const attachTerminalRef = useRef(attachTerminal.mutate);
 	attachTerminalRef.current = attachTerminal.mutate;
 
-	const navigateToWorkspace = useCallback((ws: LinkedWorkspace) => {
+	const navigateToWorkspace = useCallback((ws: LinkedWorkspace, pr: GitHubPR) => {
 		const store = useTabStore.getState();
 		store.setActiveWorkspace(ws.workspaceId, ws.worktreePath);
+
+		const prCtx: import("../../shared/github-types").GitHubPRContext = {
+			owner: pr.repoOwner,
+			repo: pr.repoName,
+			number: pr.number,
+			title: pr.title,
+			sourceBranch: pr.branchName,
+			targetBranch: "main", // We'll update this from PR details once loaded
+			repoPath: ws.worktreePath,
+		};
+		store.openPRReviewPanel(ws.workspaceId, prCtx);
 
 		const existing = store.getTabsByWorkspace(ws.workspaceId);
 		const hasTerminal = existing.some((t) => t.kind === "terminal");
@@ -354,6 +365,7 @@ export function GitHubPRList() {
 					position={popover.position}
 					workspaces={popover.workspaces}
 					onClose={() => setPopover(null)}
+					onSelect={(ws) => navigateToWorkspace(ws, popover.pr)}
 					onCreateBranch={() => {
 						setPopover(null);
 						handleLink(popover.pr);
