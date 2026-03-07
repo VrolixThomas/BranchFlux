@@ -234,6 +234,7 @@ function GroupLabel({ label }: { label: string }) {
 export function GitHubPRList() {
 	const utils = trpc.useUtils();
 	const [openModalPR, setOpenModalPR] = useState<GitHubPR | null>(null);
+	const [linkError, setLinkError] = useState<string | null>(null);
 	const [popover, setPopover] = useState<{
 		position: { x: number; y: number };
 		pr: GitHubPR;
@@ -303,9 +304,10 @@ export function GitHubPRList() {
 		});
 
 		if (projects.length === 0) {
-			alert(`Repository ${pr.repoOwner}/${pr.repoName} is not tracked in BranchFlux.`);
+			setLinkError(`Repository ${pr.repoOwner}/${pr.repoName} is not tracked in BranchFlux.`);
 			return;
 		}
+		setLinkError(null);
 
 		setOpenModalPR(pr);
 	};
@@ -327,6 +329,11 @@ export function GitHubPRList() {
 
 	return (
 		<>
+			{linkError && (
+				<div className="mx-3 my-1 rounded-[var(--radius-sm)] bg-[var(--bg-elevated)] px-3 py-2 text-[11px] text-red-400">
+					{linkError}
+				</div>
+			)}
 			<div className="flex flex-col gap-0.5">
 				{authored.length > 0 && (
 					<>
