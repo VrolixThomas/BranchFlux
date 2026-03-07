@@ -141,7 +141,12 @@ interface RawGQLPR {
 	reviews: { nodes: { author: { login: string; avatarUrl: string }; state: string }[] };
 	reviewThreads: { nodes: RawGQLThread[] };
 	comments: {
-		nodes: { id: string; body: string; author: { login: string; avatarUrl: string }; createdAt: string }[];
+		nodes: {
+			id: string;
+			body: string;
+			author: { login: string; avatarUrl: string };
+			createdAt: string;
+		}[];
 	};
 	files: { nodes: { path: string; additions: number; deletions: number; changeType: string }[] };
 	headRefName: string;
@@ -164,7 +169,8 @@ export function mapPRDetails(raw: RawGQLPR): import("../../shared/github-types")
 	const reviewerMap = new Map<string, import("../../shared/github-types").GitHubReviewer>();
 	for (const req of raw.reviewRequests.nodes) {
 		const r = req.requestedReviewer;
-		if (r) reviewerMap.set(r.login, { login: r.login, avatarUrl: r.avatarUrl, decision: "PENDING" });
+		if (r)
+			reviewerMap.set(r.login, { login: r.login, avatarUrl: r.avatarUrl, decision: "PENDING" });
 	}
 	for (const rev of raw.reviews.nodes) {
 		const existing = reviewerMap.get(rev.author.login);
@@ -187,8 +193,9 @@ export function mapPRDetails(raw: RawGQLPR): import("../../shared/github-types")
 		isDraft: raw.isDraft,
 		author: raw.author.login,
 		authorAvatarUrl: raw.author.avatarUrl,
-		reviewDecision:
-			raw.reviewDecision as import("../../shared/github-types").GitHubPRDetails["reviewDecision"],
+		reviewDecision: raw.reviewDecision as import(
+			"../../shared/github-types"
+		).GitHubPRDetails["reviewDecision"],
 		ciState: rollup
 			? (rollup.state as import("../../shared/github-types").GitHubPRDetails["ciState"])
 			: null,
