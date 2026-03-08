@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Project } from "../../main/db/schema";
 import { useProjectStore } from "../stores/projects";
 import { useTabStore } from "../stores/tab-store";
@@ -187,6 +187,363 @@ function RailProjectItem({
 	);
 }
 
+// ── Tickets Rail Section ──────────────────────────────────────────────────────
+
+interface RailSectionProps {
+	flyout: FlyoutTarget | null;
+	openFlyout: (target: FlyoutTarget, el: HTMLElement) => void;
+	scheduleDismiss: () => void;
+	onExpand: () => void;
+}
+
+function RailTicketsSection({ flyout, openFlyout, scheduleDismiss, onExpand }: RailSectionProps) {
+	const { data: atlassianStatus } = trpc.atlassian.getStatus.useQuery(undefined, {
+		staleTime: 30_000,
+	});
+	const { data: linearStatus } = trpc.linear.getStatus.useQuery(undefined, {
+		staleTime: 30_000,
+	});
+
+	const hasJira = atlassianStatus?.jira.connected;
+	const hasLinear = linearStatus?.connected;
+
+	const { data: jiraIssues } = trpc.atlassian.getMyIssues.useQuery(undefined, {
+		enabled: hasJira,
+		staleTime: 30_000,
+	});
+	const { data: linearIssues } = trpc.linear.getAssignedIssues.useQuery(undefined, {
+		enabled: hasLinear,
+		staleTime: 30_000,
+	});
+
+	const tickets = useMemo(() => {
+		const items: { id: string; label: string; title: string; color?: string }[] = [];
+		if (jiraIssues) {
+			for (const issue of jiraIssues) {
+				items.push({
+					id: `jira:${issue.key}`,
+					label: issue.key,
+					title: `${issue.key}: ${issue.summary}`,
+					color: issue.statusColor,
+				});
+			}
+		}
+		if (linearIssues) {
+			for (const issue of linearIssues) {
+				items.push({
+					id: `linear:${issue.id}`,
+					label: issue.identifier,
+					title: `${issue.identifier}: ${issue.title}`,
+					color: issue.stateColor,
+				});
+			}
+		}
+		return items;
+	}, [jiraIssues, linearIssues]);
+
+	const [hoveredId, setHoveredId] = useState<string | null>(null);
+	const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
+	const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const dismissHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const showInfoCard = useCallback((id: string, el: HTMLElement) => {
+		if (dismissHoverTimer.current) {
+			clearTimeout(dismissHoverTimer.current);
+			dismissHoverTimer.current = null;
+		}
+		hoverTimer.current = setTimeout(() => {
+			setHoveredId(id);
+			setHoverRect(el.getBoundingClientRect());
+		}, 200);
+	}, []);
+
+	const hideInfoCard = useCallback(() => {
+		if (hoverTimer.current) {
+			clearTimeout(hoverTimer.current);
+			hoverTimer.current = null;
+		}
+		dismissHoverTimer.current = setTimeout(() => {
+			setHoveredId(null);
+			setHoverRect(null);
+		}, 150);
+	}, []);
+
+	const cancelInfoDismiss = useCallback(() => {
+		if (dismissHoverTimer.current) {
+			clearTimeout(dismissHoverTimer.current);
+			dismissHoverTimer.current = null;
+		}
+	}, []);
+
+	if (!hasJira && !hasLinear) return null;
+
+	const isFlyoutActive = flyout?.kind === "tickets";
+	const visibleTickets = tickets.slice(0, MAX_PILLS);
+	const hoveredData = tickets.find((t) => t.id === hoveredId);
+
+	return (
+		<div className="flex w-full flex-col items-stretch rounded-[8px] border border-[var(--border)] bg-[var(--bg-elevated)] px-1.5 py-1.5">
+			{/* Tickets icon header */}
+			<button
+				type="button"
+				title="Tickets"
+				onMouseEnter={(e) => openFlyout({ kind: "tickets" }, e.currentTarget)}
+				onMouseLeave={scheduleDismiss}
+				onClick={onExpand}
+				className={[
+					"flex h-8 shrink-0 items-center justify-center rounded-[6px] transition-colors duration-[120ms] hover:bg-[var(--bg-overlay)]",
+					isFlyoutActive
+						? "bg-[var(--bg-overlay)] text-[var(--text)]"
+						: "text-[var(--text-secondary)]",
+				].join(" ")}
+			>
+				<svg
+					aria-hidden="true"
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="1.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+				>
+					<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+					<rect x="9" y="3" width="6" height="4" rx="1" />
+				</svg>
+			</button>
+
+			{/* Ticket pills */}
+			{visibleTickets.length > 0 && (
+				<div className="flex flex-col gap-0.5 pt-1">
+					{visibleTickets.map((ticket) => (
+						<button
+							key={ticket.id}
+							type="button"
+							onClick={onExpand}
+							onMouseEnter={(e) => showInfoCard(ticket.id, e.currentTarget)}
+							onMouseLeave={hideInfoCard}
+							className="truncate rounded-[4px] bg-[var(--bg-overlay)] px-1.5 py-[3px] text-[10px] leading-tight text-left text-[var(--text-tertiary)] transition-colors duration-[120ms] hover:brightness-125 hover:text-[var(--text-secondary)]"
+						>
+							{ticket.label}
+						</button>
+					))}
+					{tickets.length > MAX_PILLS && (
+						<button
+							type="button"
+							onClick={onExpand}
+							className="rounded-[4px] px-1.5 py-[2px] text-[9px] text-left text-[var(--text-quaternary)] hover:text-[var(--text-tertiary)]"
+						>
+							+{tickets.length - MAX_PILLS} more
+						</button>
+					)}
+				</div>
+			)}
+
+			{/* Hover info card */}
+			{hoveredData && hoverRect && (
+				<div
+					className="fixed z-50 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 shadow-[var(--shadow-md)] animate-[flyout-in_120ms_ease-out]"
+					style={{
+						left: hoverRect.right + 8,
+						top: hoverRect.top + hoverRect.height / 2,
+						transform: "translateY(-50%)",
+					}}
+					onMouseEnter={cancelInfoDismiss}
+					onMouseLeave={hideInfoCard}
+				>
+					<div className="max-w-[200px] whitespace-nowrap text-[12px] text-[var(--text)] truncate">
+						{hoveredData.title}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ── Pull Requests Rail Section ───────────────────────────────────────────────
+
+function RailPRsSection({ flyout, openFlyout, scheduleDismiss, onExpand }: RailSectionProps) {
+	const { data: atlassianStatus } = trpc.atlassian.getStatus.useQuery(undefined, {
+		staleTime: 30_000,
+	});
+	const { data: githubStatus } = trpc.github.getStatus.useQuery(undefined, {
+		staleTime: 30_000,
+	});
+
+	const hasBitbucket = atlassianStatus?.bitbucket.connected;
+	const hasGitHub = githubStatus?.connected;
+
+	const { data: bbMyPRs } = trpc.atlassian.getMyPullRequests.useQuery(undefined, {
+		enabled: hasBitbucket,
+		staleTime: 30_000,
+	});
+	const { data: bbReviewPRs } = trpc.atlassian.getReviewRequests.useQuery(undefined, {
+		enabled: hasBitbucket,
+		staleTime: 30_000,
+	});
+	const { data: ghPRs } = trpc.github.getMyPRs.useQuery(undefined, {
+		enabled: hasGitHub,
+		staleTime: 30_000,
+	});
+
+	const prs = useMemo(() => {
+		const items: {
+			id: string;
+			label: string;
+			title: string;
+			state: "open" | "merged" | "closed";
+		}[] = [];
+		const seenBb = new Set<string>();
+
+		for (const pr of [...(bbMyPRs ?? []), ...(bbReviewPRs ?? [])]) {
+			const key = `${pr.workspace}/${pr.repoSlug}#${pr.id}`;
+			if (seenBb.has(key)) continue;
+			seenBb.add(key);
+			items.push({
+				id: `bb-${key}`,
+				label: `#${pr.id}`,
+				title: `${pr.workspace}/${pr.repoSlug} #${pr.id}: ${pr.title}`,
+				state: pr.state === "MERGED" ? "merged" : pr.state === "DECLINED" ? "closed" : "open",
+			});
+		}
+
+		for (const pr of ghPRs ?? []) {
+			items.push({
+				id: `gh-${pr.repoOwner}-${pr.repoName}-${pr.number}`,
+				label: `#${pr.number}`,
+				title: `${pr.repoOwner}/${pr.repoName} #${pr.number}: ${pr.title}`,
+				state: pr.state === "closed" ? "closed" : "open",
+			});
+		}
+
+		return items;
+	}, [bbMyPRs, bbReviewPRs, ghPRs]);
+
+	const [hoveredId, setHoveredId] = useState<string | null>(null);
+	const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
+	const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const dismissHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const showInfoCard = useCallback((id: string, el: HTMLElement) => {
+		if (dismissHoverTimer.current) {
+			clearTimeout(dismissHoverTimer.current);
+			dismissHoverTimer.current = null;
+		}
+		hoverTimer.current = setTimeout(() => {
+			setHoveredId(id);
+			setHoverRect(el.getBoundingClientRect());
+		}, 200);
+	}, []);
+
+	const hideInfoCard = useCallback(() => {
+		if (hoverTimer.current) {
+			clearTimeout(hoverTimer.current);
+			hoverTimer.current = null;
+		}
+		dismissHoverTimer.current = setTimeout(() => {
+			setHoveredId(null);
+			setHoverRect(null);
+		}, 150);
+	}, []);
+
+	const cancelInfoDismiss = useCallback(() => {
+		if (dismissHoverTimer.current) {
+			clearTimeout(dismissHoverTimer.current);
+			dismissHoverTimer.current = null;
+		}
+	}, []);
+
+	if (!hasBitbucket && !hasGitHub) return null;
+
+	const stateColors = { open: "bg-green-500", merged: "bg-purple-500", closed: "bg-red-500" };
+	const isFlyoutActive = flyout?.kind === "prs";
+	const visiblePRs = prs.slice(0, MAX_PILLS);
+	const hoveredData = prs.find((p) => p.id === hoveredId);
+
+	return (
+		<div className="flex w-full flex-col items-stretch rounded-[8px] border border-[var(--border)] bg-[var(--bg-elevated)] px-1.5 py-1.5">
+			{/* PRs icon header */}
+			<button
+				type="button"
+				title="Pull Requests"
+				onMouseEnter={(e) => openFlyout({ kind: "prs" }, e.currentTarget)}
+				onMouseLeave={scheduleDismiss}
+				onClick={onExpand}
+				className={[
+					"flex h-8 shrink-0 items-center justify-center rounded-[6px] transition-colors duration-[120ms] hover:bg-[var(--bg-overlay)]",
+					isFlyoutActive
+						? "bg-[var(--bg-overlay)] text-[var(--text)]"
+						: "text-[var(--text-secondary)]",
+				].join(" ")}
+			>
+				<svg
+					aria-hidden="true"
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="1.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+				>
+					<circle cx="18" cy="18" r="3" />
+					<circle cx="6" cy="6" r="3" />
+					<path d="M6 9v12M18 9v0" />
+					<path d="M13 6h3a2 2 0 0 1 2 2v1" />
+				</svg>
+			</button>
+
+			{/* PR pills */}
+			{visiblePRs.length > 0 && (
+				<div className="flex flex-col gap-0.5 pt-1">
+					{visiblePRs.map((pr) => (
+						<button
+							key={pr.id}
+							type="button"
+							onClick={onExpand}
+							onMouseEnter={(e) => showInfoCard(pr.id, e.currentTarget)}
+							onMouseLeave={hideInfoCard}
+							className="flex items-center gap-1 truncate rounded-[4px] bg-[var(--bg-overlay)] px-1.5 py-[3px] text-[10px] leading-tight text-left text-[var(--text-tertiary)] transition-colors duration-[120ms] hover:brightness-125 hover:text-[var(--text-secondary)]"
+						>
+							<div className={`size-1.5 shrink-0 rounded-full ${stateColors[pr.state]}`} />
+							{pr.label}
+						</button>
+					))}
+					{prs.length > MAX_PILLS && (
+						<button
+							type="button"
+							onClick={onExpand}
+							className="rounded-[4px] px-1.5 py-[2px] text-[9px] text-left text-[var(--text-quaternary)] hover:text-[var(--text-tertiary)]"
+						>
+							+{prs.length - MAX_PILLS} more
+						</button>
+					)}
+				</div>
+			)}
+
+			{/* Hover info card */}
+			{hoveredData && hoverRect && (
+				<div
+					className="fixed z-50 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 shadow-[var(--shadow-md)] animate-[flyout-in_120ms_ease-out]"
+					style={{
+						left: hoverRect.right + 8,
+						top: hoverRect.top + hoverRect.height / 2,
+						transform: "translateY(-50%)",
+					}}
+					onMouseEnter={cancelInfoDismiss}
+					onMouseLeave={hideInfoCard}
+				>
+					<div className="max-w-[200px] text-[12px] text-[var(--text)] truncate">
+						{hoveredData.title}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
 export function SidebarRail({ onExpand }: SidebarRailProps) {
 	const { openAddModal, openSettings } = useProjectStore();
 	const { data: projectsList } = trpc.projects.list.useQuery();
@@ -230,24 +587,7 @@ export function SidebarRail({ onExpand }: SidebarRailProps) {
 				style={{ height: 52, WebkitAppRegion: "drag" } as React.CSSProperties}
 			/>
 
-			{/* Monogram */}
-			<div className="pb-4">
-				<span className="text-[11px] font-semibold text-[var(--text-quaternary)]">BF</span>
-			</div>
-
-			{/* Add Repository */}
-			<button
-				type="button"
-				onClick={openAddModal}
-				title="Add Repository"
-				className="mb-3 flex size-8 items-center justify-center rounded-[6px] text-[var(--text-tertiary)] transition-colors duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
-			>
-				<svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
-					<path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-				</svg>
-			</button>
-
-			{/* Project groups */}
+			{/* Project groups + Tickets + PRs */}
 			<div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto px-1 py-1">
 				{projectsList?.map((project) => (
 					<RailProjectItem
@@ -259,71 +599,42 @@ export function SidebarRail({ onExpand }: SidebarRailProps) {
 						onExpand={() => onExpand()}
 					/>
 				))}
-			</div>
 
-			{/* Section icons */}
-			<div className="flex flex-col items-center gap-1 border-t border-[var(--border-subtle)] py-2">
-				{/* Tickets icon */}
+				{/* Add Repository */}
 				<button
 					type="button"
-					title="Tickets"
-					onMouseEnter={(e) => openFlyout({ kind: "tickets" }, e.currentTarget)}
-					onMouseLeave={scheduleDismiss}
-					onClick={() => onExpand("tickets")}
-					className={[
-						"flex size-8 items-center justify-center rounded-[6px] transition-colors duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]",
-						flyout?.kind === "tickets"
-							? "bg-[var(--bg-elevated)] text-[var(--text-secondary)]"
-							: "text-[var(--text-tertiary)]",
-					].join(" ")}
+					onClick={openAddModal}
+					title="Add Repository"
+					className="flex size-6 shrink-0 items-center justify-center rounded-[5px] text-[var(--text-quaternary)] transition-colors duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-tertiary)]"
 				>
-					<svg
-						aria-hidden="true"
-						width="15"
-						height="15"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.5"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-						<rect x="9" y="3" width="6" height="4" rx="1" />
+					<svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none">
+						<path
+							d="M8 3v10M3 8h10"
+							stroke="currentColor"
+							strokeWidth="1.5"
+							strokeLinecap="round"
+						/>
 					</svg>
 				</button>
 
-				{/* PRs icon */}
-				<button
-					type="button"
-					title="Pull Requests"
-					onMouseEnter={(e) => openFlyout({ kind: "prs" }, e.currentTarget)}
-					onMouseLeave={scheduleDismiss}
-					onClick={() => onExpand("prs")}
-					className={[
-						"flex size-8 items-center justify-center rounded-[6px] transition-colors duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]",
-						flyout?.kind === "prs"
-							? "bg-[var(--bg-elevated)] text-[var(--text-secondary)]"
-							: "text-[var(--text-tertiary)]",
-					].join(" ")}
-				>
-					<svg
-						aria-hidden="true"
-						width="15"
-						height="15"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.5"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<circle cx="18" cy="18" r="3" />
-						<circle cx="6" cy="6" r="3" />
-						<path d="M6 9v12M18 9v0" />
-						<path d="M13 6h3a2 2 0 0 1 2 2v1" />
-					</svg>
-				</button>
+				{/* Divider */}
+				<div className="w-6 border-t border-[var(--border-subtle)]" />
+
+				{/* Tickets section */}
+				<RailTicketsSection
+					flyout={flyout}
+					openFlyout={openFlyout}
+					scheduleDismiss={scheduleDismiss}
+					onExpand={() => onExpand("tickets")}
+				/>
+
+				{/* PRs section */}
+				<RailPRsSection
+					flyout={flyout}
+					openFlyout={openFlyout}
+					scheduleDismiss={scheduleDismiss}
+					onExpand={() => onExpand("prs")}
+				/>
 			</div>
 
 			{/* Settings */}

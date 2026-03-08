@@ -56,13 +56,6 @@ export function Sidebar({ collapsed, onExpand }: SidebarProps) {
 				<SettingsView />
 			) : (
 				<>
-					{/* Wordmark */}
-					<div className="px-4 pb-6">
-						<span className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--text-quaternary)]">
-							BranchFlux
-						</span>
-					</div>
-
 					{/* Add Repository */}
 					<div className="px-2 pb-2">
 						<button
