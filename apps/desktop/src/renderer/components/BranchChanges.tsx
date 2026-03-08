@@ -55,7 +55,7 @@ export function BranchChanges({
 	const [collapsed, setCollapsed] = useState(false);
 	const openDiffFile = useTabStore((s) => s.openDiffFile);
 
-	const branchDiffQuery = trpc.diff.getBranchDiff.useQuery(
+	const branchDiffQuery = trpc.diff.getBranchDiffTwoDot.useQuery(
 		{ repoPath, baseBranch, headBranch: currentBranch },
 		{ staleTime: 15_000 }
 	);
