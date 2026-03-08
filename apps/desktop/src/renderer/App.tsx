@@ -118,8 +118,6 @@ export function App() {
 	const sidebarPanelRef = usePanelRef();
 	const setSidebarCollapsed = useProjectStore((s) => s.setSidebarCollapsed);
 	const sidebarCollapsed = useProjectStore((s) => s.sidebarCollapsed);
-	const rightPanel = useTabStore((s) => s.rightPanel);
-
 	const { defaultLayout, onLayoutChanged } = useDefaultLayout({
 		id: "app-layout",
 		storage: localStorage,
@@ -159,14 +157,10 @@ export function App() {
 					<MainContentArea savedScrollback={savedScrollback} />
 				</Panel>
 
-				{rightPanel.open && (
-					<>
-						<Separator className="panel-resize-handle" />
-						<Panel id="diff" defaultSize="19.4%" minSize="10%" maxSize="40%">
-							<DiffPanel />
-						</Panel>
-					</>
-				)}
+				<Separator className="panel-resize-handle" />
+				<Panel id="diff" defaultSize="19.4%" minSize="10%" maxSize="40%">
+					<DiffPanel />
+				</Panel>
 			</Group>
 			<AddRepositoryModal />
 			<CreateWorktreeModal />
