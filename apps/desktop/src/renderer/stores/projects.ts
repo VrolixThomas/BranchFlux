@@ -15,6 +15,9 @@ interface ProjectStore {
 	closeCreateWorktreeModal: () => void;
 	openSharedFilesPanel: (projectId: string) => void;
 	closeSharedFilesPanel: () => void;
+	sidebarView: "main" | "settings";
+	openSettings: () => void;
+	closeSettings: () => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set) => ({
@@ -24,6 +27,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
 	isCreateWorktreeModalOpen: false,
 	createWorktreeProjectId: null,
 	sharedFilesProjectId: null,
+	sidebarView: "main",
 
 	selectProject: (id) => set({ selectedProjectId: id }),
 
@@ -48,4 +52,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
 
 	openSharedFilesPanel: (projectId) => set({ sharedFilesProjectId: projectId }),
 	closeSharedFilesPanel: () => set({ sharedFilesProjectId: null }),
+
+	openSettings: () => set({ sidebarView: "settings" }),
+	closeSettings: () => set({ sidebarView: "main" }),
 }));
