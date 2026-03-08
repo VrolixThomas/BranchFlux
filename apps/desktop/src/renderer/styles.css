@@ -176,3 +176,30 @@ body,
 .pr-gutter-plus-icon:hover {
 	opacity: 1;
 }
+
+/* ── Panel resize handles ─────────────────────────────────────────────────── */
+
+.panel-resize-handle {
+	position: relative;
+	width: 1px;
+	background: var(--border-subtle);
+	transition: background-color var(--transition-fast);
+}
+
+.panel-resize-handle::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -2px;
+	width: 5px;
+	cursor: col-resize;
+}
+
+.panel-resize-handle[data-separator="hover"] {
+	background: var(--text-quaternary);
+}
+
+.panel-resize-handle[data-separator="active"] {
+	background: var(--accent);
+}
