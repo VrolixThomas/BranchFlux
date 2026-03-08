@@ -3,9 +3,10 @@ import { AtlassianPanel } from "./AtlassianPanel";
 import { GitHubPanel } from "./GitHubPanel";
 import { LinearPanel } from "./LinearPanel";
 import { ProjectList } from "./ProjectList";
+import { SettingsView } from "./SettingsView";
 
 export function Sidebar() {
-	const { openAddModal } = useProjectStore();
+	const { openAddModal, sidebarView, openSettings } = useProjectStore();
 
 	return (
 		<aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -20,77 +21,78 @@ export function Sidebar() {
 				}
 			/>
 
-			{/* Wordmark */}
-			<div className="px-4 pb-6">
-				<span className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--text-quaternary)]">
-					BranchFlux
-				</span>
-			</div>
+			{sidebarView === "settings" ? (
+				<SettingsView />
+			) : (
+				<>
+					{/* Wordmark */}
+					<div className="px-4 pb-6">
+						<span className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--text-quaternary)]">
+							BranchFlux
+						</span>
+					</div>
 
-			{/* Add Repository */}
-			<div className="px-2 pb-2">
-				<button
-					type="button"
-					onClick={openAddModal}
-					className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 text-[13px] text-[var(--text-tertiary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
-				>
-					<svg
-						aria-hidden="true"
-						width="14"
-						height="14"
-						viewBox="0 0 16 16"
-						fill="none"
-						className="shrink-0"
-					>
-						<path
-							d="M8 3v10M3 8h10"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-						/>
-					</svg>
-					Add Repository
-				</button>
-			</div>
+					{/* Add Repository */}
+					<div className="px-2 pb-2">
+						<button
+							type="button"
+							onClick={openAddModal}
+							className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 text-[13px] text-[var(--text-tertiary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
+						>
+							<svg
+								aria-hidden="true"
+								width="14"
+								height="14"
+								viewBox="0 0 16 16"
+								fill="none"
+								className="shrink-0"
+							>
+								<path
+									d="M8 3v10M3 8h10"
+									stroke="currentColor"
+									strokeWidth="1.5"
+									strokeLinecap="round"
+								/>
+							</svg>
+							Add Repository
+						</button>
+					</div>
 
-			{/* Project list + Integrations */}
-			<div className="flex-1 overflow-y-auto py-1">
-				<ProjectList />
-				<div className="mt-2 border-t border-[var(--border-subtle)] pt-2">
-					<AtlassianPanel />
-				</div>
-				<div className="mt-2 border-t border-[var(--border-subtle)] pt-2">
-					<LinearPanel />
-				</div>
-				<div className="mt-2 border-t border-[var(--border-subtle)] pt-2">
-					<GitHubPanel />
-				</div>
-			</div>
+					{/* Project list + Integrations */}
+					<div className="flex-1 overflow-y-auto py-1">
+						<ProjectList />
+						<AtlassianPanel />
+						<LinearPanel />
+						<GitHubPanel />
+					</div>
 
-			{/* Footer */}
-			<div className="border-t border-[var(--border-subtle)] p-2">
-				<button
-					type="button"
-					className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 text-[13px] text-[var(--text-tertiary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
-				>
-					<svg
-						aria-hidden="true"
-						width="15"
-						height="15"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.5"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						className="shrink-0"
-					>
-						<circle cx="12" cy="12" r="3" />
-						<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-					</svg>
-					Settings
-				</button>
-			</div>
+					{/* Footer — Settings button */}
+					<div className="border-t border-[var(--border-subtle)] p-2">
+						<button
+							type="button"
+							onClick={openSettings}
+							className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 text-[13px] text-[var(--text-tertiary)] transition-all duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
+						>
+							<svg
+								aria-hidden="true"
+								width="15"
+								height="15"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className="shrink-0"
+							>
+								<circle cx="12" cy="12" r="3" />
+								<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+							</svg>
+							Settings
+						</button>
+					</div>
+				</>
+			)}
 		</aside>
 	);
 }
