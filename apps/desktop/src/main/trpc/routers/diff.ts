@@ -4,7 +4,13 @@ import { z } from "zod";
 import { atlassianFetch } from "../../atlassian/auth";
 import { getDb } from "../../db";
 import { extensionPaths } from "../../db/schema";
-import { readWorkingTreeFile, saveWorkingTreeFile } from "../../git/file-ops";
+import {
+	createDirectory,
+	deleteFile,
+	readWorkingTreeFile,
+	renameFile,
+	saveWorkingTreeFile,
+} from "../../git/file-ops";
 import { listDirectory } from "../../git/file-tree";
 import {
 	commitChanges,
@@ -256,5 +262,50 @@ export const diffRouter = router({
 		.query(async ({ input }) => {
 			const branches = await listBranches(input.repoPath);
 			return { branches };
+		}),
+
+	listAllFiles: publicProcedure
+		.input(z.object({ repoPath: z.string() }))
+		.query(async ({ input }) => {
+			const git = simpleGit(input.repoPath);
+			const [tracked, untracked] = await Promise.all([
+				git.raw(["ls-files"]),
+				git.raw(["ls-files", "--others", "--exclude-standard"]),
+			]);
+			const files = [...tracked.trim().split("\n"), ...untracked.trim().split("\n")]
+				.filter(Boolean)
+				.sort();
+			return { files };
+		}),
+
+	revealInFinder: publicProcedure
+		.input(z.object({ absolutePath: z.string() }))
+		.mutation(async ({ input }) => {
+			const { shell } = await import("electron");
+			shell.showItemInFolder(input.absolutePath);
+		}),
+
+	createFile: publicProcedure
+		.input(z.object({ repoPath: z.string(), filePath: z.string() }))
+		.mutation(async ({ input }) => {
+			await saveWorkingTreeFile(input.repoPath, input.filePath, "");
+		}),
+
+	createFolder: publicProcedure
+		.input(z.object({ repoPath: z.string(), dirPath: z.string() }))
+		.mutation(async ({ input }) => {
+			await createDirectory(input.repoPath, input.dirPath);
+		}),
+
+	deleteFileOrFolder: publicProcedure
+		.input(z.object({ repoPath: z.string(), targetPath: z.string() }))
+		.mutation(async ({ input }) => {
+			await deleteFile(input.repoPath, input.targetPath);
+		}),
+
+	renameFileOrFolder: publicProcedure
+		.input(z.object({ repoPath: z.string(), oldPath: z.string(), newPath: z.string() }))
+		.mutation(async ({ input }) => {
+			await renameFile(input.repoPath, input.oldPath, input.newPath);
 		}),
 });
