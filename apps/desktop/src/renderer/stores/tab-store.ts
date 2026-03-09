@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { DiffContext } from "../../shared/diff-types";
 import type { GitHubPRContext } from "../../shared/github-types";
 import type { Pane } from "../../shared/pane-types";
+import { createDefaultPane, getAllPanes, usePaneStore } from "./pane-store";
 
 // ─── Tab types ───────────────────────────────────────────────────────────────
 
@@ -162,21 +163,14 @@ export function diffContextsEqual(a: DiffContext, b: DiffContext): boolean {
 
 // ─── Pane-store access helpers ───────────────────────────────────────────────
 
-/** Lazily import pane-store to avoid circular-import issues at module init. */
-function pane() {
-	// Dynamic require at call time — the module is already loaded by then.
-	// eslint-disable-next-line @typescript-eslint/no-require-imports
-	return require("./pane-store") as typeof import("./pane-store");
-}
-
 /** Get pane-store state (shorthand). */
 function ps() {
-	return pane().usePaneStore.getState();
+	return usePaneStore.getState();
 }
 
 /** Get all panes from a layout node (shorthand). */
 function getAll(node: import("../../shared/pane-types").LayoutNode) {
-	return pane().getAllPanes(node);
+	return getAllPanes(node);
 }
 
 /** Collect all tabs across every pane for a given workspace layout. */
@@ -524,7 +518,6 @@ export const useTabStore = create<TabStore>()((set, get) => ({
 			tabsByWorkspace.set(tab.workspaceId, existing);
 		}
 
-		const { createDefaultPane } = pane();
 		for (const [wsId, wsTabs] of tabsByWorkspace) {
 			const newPane = createDefaultPane(wsTabs);
 			// If the activeTab is in this workspace, set it as the active tab in the pane
