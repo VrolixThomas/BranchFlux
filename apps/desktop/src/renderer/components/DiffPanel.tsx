@@ -230,16 +230,13 @@ function ExplorerPanelContent() {
 					if (m !== "explorer") togglePanelMode();
 				}}
 			/>
-			<div className="flex-1 overflow-y-auto px-1 py-1">
-				{!activeWorkspaceId && (
-					<div className="px-3 py-2 text-[12px] text-[var(--text-quaternary)]">
-						Select a workspace
-					</div>
-				)}
-				{activeWorkspaceId && activeWorkspaceCwd && (
-					<RepoFileTree repoPath={activeWorkspaceCwd} workspaceId={activeWorkspaceId} />
-				)}
-			</div>
+			{!activeWorkspaceId ? (
+				<div className="flex flex-1 items-center justify-center">
+					<span className="text-[12px] text-[var(--text-quaternary)]">Select a workspace</span>
+				</div>
+			) : activeWorkspaceCwd ? (
+				<RepoFileTree repoPath={activeWorkspaceCwd} workspaceId={activeWorkspaceId} />
+			) : null}
 		</div>
 	);
 }
