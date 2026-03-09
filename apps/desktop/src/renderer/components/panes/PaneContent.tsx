@@ -18,7 +18,7 @@ export function PaneContent({
 		<div className="relative flex-1 overflow-hidden">
 			{pane.tabs.length === 0 && (
 				<div className="flex h-full items-center justify-center text-[13px] text-[var(--text-quaternary)]">
-					Empty pane — drag a tab here or press + to create a terminal
+					Empty pane — press + to create a terminal
 				</div>
 			)}
 

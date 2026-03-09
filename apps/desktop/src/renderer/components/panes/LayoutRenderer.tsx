@@ -21,6 +21,7 @@ export function LayoutRenderer({
 	const firstSize = node.ratio * 100;
 	const secondSize = (1 - node.ratio) * 100;
 
+	// TODO(Task 11): Add onLayout callback to sync user-dragged sizes back to setPaneRatio()
 	return (
 		<Group orientation={orientation}>
 			<Panel id={`${node.id}-first`} defaultSize={`${firstSize}%`}>
