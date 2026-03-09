@@ -81,6 +81,7 @@ interface TabStore {
 	// Diff convenience
 	toggleDiffPanel: (diffCtx: DiffContext) => void;
 	closeDiffPanel: () => void;
+	openRightPanel: () => void;
 	openExplorer: () => void;
 	togglePanelMode: () => void;
 	openDiffFile: (
@@ -294,6 +295,12 @@ export const useTabStore = create<TabStore>((set, get) => ({
 
 	closeDiffPanel: () => {
 		set({ rightPanel: PANEL_CLOSED });
+	},
+
+	openRightPanel: () => {
+		const { rightPanel, activeWorkspaceCwd } = get();
+		if (rightPanel.open) return;
+		set({ rightPanel: defaultPanelForCwd(activeWorkspaceCwd) });
 	},
 
 	openExplorer: () => {

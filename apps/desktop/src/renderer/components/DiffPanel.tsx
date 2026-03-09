@@ -12,10 +12,12 @@ function PanelHeader({
 	mode,
 	stats,
 	onSetMode,
+	onClose,
 }: {
 	mode: PanelMode;
 	stats?: { added: number; removed: number; changed: number };
 	onSetMode: (mode: PanelMode) => void;
+	onClose?: () => void;
 }) {
 	return (
 		<div className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] px-3 py-2">
@@ -56,11 +58,33 @@ function PanelHeader({
 					<span className="text-[var(--term-red)]">-{stats.removed}</span>
 				</div>
 			)}
+
+			{onClose && (
+				<button
+					type="button"
+					onClick={onClose}
+					className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-quaternary)] transition-colors duration-[120ms] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-tertiary)]"
+					title="Close panel"
+				>
+					<svg
+						width="10"
+						height="10"
+						viewBox="0 0 10 10"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						aria-hidden="true"
+					>
+						<path d="M1 1l8 8M9 1l-8 8" />
+					</svg>
+				</button>
+			)}
 		</div>
 	);
 }
 
-function DiffPanelContent({ diffCtx }: { diffCtx: DiffContext }) {
+function DiffPanelContent({ diffCtx, onClose }: { diffCtx: DiffContext; onClose?: () => void }) {
 	const togglePanelMode = useTabStore((s) => s.togglePanelMode);
 	const activeWorkspaceId = useTabStore((s) => s.activeWorkspaceId);
 	const setBaseBranch = useTabStore((s) => s.setBaseBranch);
@@ -147,6 +171,7 @@ function DiffPanelContent({ diffCtx }: { diffCtx: DiffContext }) {
 				onSetMode={(m) => {
 					if (m !== "diff") togglePanelMode();
 				}}
+				onClose={onClose}
 			/>
 
 			{/* Smart header bar — only for working-tree mode */}
@@ -217,7 +242,7 @@ function DiffPanelContent({ diffCtx }: { diffCtx: DiffContext }) {
 	);
 }
 
-function ExplorerPanelContent() {
+function ExplorerPanelContent({ onClose }: { onClose?: () => void }) {
 	const togglePanelMode = useTabStore((s) => s.togglePanelMode);
 	const activeWorkspaceId = useTabStore((s) => s.activeWorkspaceId);
 	const activeWorkspaceCwd = useTabStore((s) => s.activeWorkspaceCwd);
@@ -229,6 +254,7 @@ function ExplorerPanelContent() {
 				onSetMode={(m) => {
 					if (m !== "explorer") togglePanelMode();
 				}}
+				onClose={onClose}
 			/>
 			{!activeWorkspaceId ? (
 				<div className="flex flex-1 items-center justify-center">
@@ -241,7 +267,7 @@ function ExplorerPanelContent() {
 	);
 }
 
-export function DiffPanel() {
+export function DiffPanel({ onClose }: { onClose?: () => void }) {
 	const rightPanel = useTabStore((s) => s.rightPanel);
 
 	if (!rightPanel.open) return null;
@@ -257,12 +283,12 @@ export function DiffPanel() {
 	return (
 		<div className="flex h-full w-full flex-col overflow-hidden bg-[var(--bg-surface)]">
 			{rightPanel.mode === "diff" && rightPanel.diffCtx ? (
-				<DiffPanelContent diffCtx={rightPanel.diffCtx} />
+				<DiffPanelContent diffCtx={rightPanel.diffCtx} onClose={onClose} />
 			) : rightPanel.mode === "explorer" ? (
-				<ExplorerPanelContent />
+				<ExplorerPanelContent onClose={onClose} />
 			) : (
 				<>
-					<PanelHeader mode="diff" onSetMode={() => {}} />
+					<PanelHeader mode="diff" onSetMode={() => {}} onClose={onClose} />
 					<div className="flex flex-1 items-center justify-center">
 						<span className="text-[12px] text-[var(--text-quaternary)]">Select a workspace</span>
 					</div>
