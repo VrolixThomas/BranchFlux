@@ -157,6 +157,7 @@ export function PaneTabBar({
 				<button
 					type="button"
 					aria-label="New terminal tab"
+					// TODO(Task 5): addTerminalTab will delegate to pane-store, remove manual addTabToPane
 					onClick={() => {
 						const tabId = addTerminalTab(workspaceId, activeWorkspaceCwd);
 						const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
