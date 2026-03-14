@@ -72,7 +72,7 @@ export const aiReviewRouter = router({
 		.input(
 			z.object({
 				commentId: z.string(),
-				status: z.enum(["approved", "rejected", "edited"]),
+				status: z.enum(["approved", "rejected", "edited", "submitted"]),
 				userEdit: z.string().optional(),
 			})
 		)

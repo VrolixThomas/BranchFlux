@@ -277,7 +277,7 @@ function SubmitReview({
 				});
 				await updateDraftComment.mutateAsync({
 					commentId: comment.draftCommentId,
-					status: "approved",
+					status: "submitted",
 				});
 				posted++;
 			} catch {
@@ -301,6 +301,8 @@ function SubmitReview({
 		setIsSubmitting(false);
 	};
 
+	const acceptedCount = aiThreads.filter((t) => t.status === "approved").length;
+
 	return (
 		<div className="shrink-0 border-t border-[var(--border-subtle)] px-3 py-2">
 			<textarea
@@ -310,6 +312,12 @@ function SubmitReview({
 				rows={3}
 				className="w-full resize-none rounded-[4px] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1.5 text-[11px] text-[var(--text-secondary)] placeholder-[var(--text-quaternary)] outline-none focus:border-[var(--accent)]"
 			/>
+			{acceptedCount > 0 && (
+				<div className="mt-1 text-[10px] text-[var(--text-quaternary)]">
+					{acceptedCount} accepted AI comment{acceptedCount !== 1 ? "s" : ""} will be posted
+					to GitHub when you submit.
+				</div>
+			)}
 			<div className="mt-1.5 flex gap-1.5">
 				{(["COMMENT", "APPROVE", "REQUEST_CHANGES"] as const).map((verdict) => (
 					<button
@@ -328,7 +336,7 @@ function SubmitReview({
 						{verdict === "APPROVE"
 							? "Approve"
 							: verdict === "REQUEST_CHANGES"
-								? "Request"
+								? "Request Changes"
 								: "Comment"}
 					</button>
 				))}
@@ -386,7 +394,7 @@ export function PRReviewPanel({ prCtx }: { prCtx: GitHubPRContext }) {
 	);
 
 	const aiThreads: AIDraftThread[] = (aiDraftQuery.data?.comments ?? [])
-		.filter((c) => c.status !== "rejected")
+		.filter((c) => c.status !== "rejected" && c.status !== "submitted")
 		.map((c) => ({
 			id: `ai-${c.id}`,
 			isAIDraft: true as const,
