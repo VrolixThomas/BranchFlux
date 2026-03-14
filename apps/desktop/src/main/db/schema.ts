@@ -231,3 +231,15 @@ export const githubPrFileViewed = sqliteTable(
 
 export type GithubPrFileViewed = typeof githubPrFileViewed.$inferSelect;
 export type NewGithubPrFileViewed = typeof githubPrFileViewed.$inferInsert;
+
+export {
+	aiReviewSettings,
+	type AiReviewSettings,
+	type NewAiReviewSettings,
+	reviewDrafts,
+	type ReviewDraft,
+	type NewReviewDraft,
+	draftComments,
+	type DraftComment,
+	type NewDraftComment,
+} from "./schema-ai-review";
