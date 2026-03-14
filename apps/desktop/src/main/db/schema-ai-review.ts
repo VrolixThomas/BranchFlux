@@ -1,0 +1,53 @@
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+// Single-row config table for global AI review settings
+export const aiReviewSettings = sqliteTable("ai_review_settings", {
+	id: text("id").primaryKey(), // fixed ID, single-row table
+	cliPreset: text("cli_preset").notNull().default("claude"),
+	cliFlags: text("cli_flags"),
+	autoReviewEnabled: integer("auto_review_enabled").notNull().default(0),
+	maxConcurrentReviews: integer("max_concurrent_reviews").notNull().default(3),
+	updatedAt: integer("updated_at", { mode: "timestamp" }),
+});
+
+export type AiReviewSettings = typeof aiReviewSettings.$inferSelect;
+export type NewAiReviewSettings = typeof aiReviewSettings.$inferInsert;
+
+// One row per PR review session
+export const reviewDrafts = sqliteTable("review_drafts", {
+	id: text("id").primaryKey(),
+	prProvider: text("pr_provider").notNull(), // "github" | "bitbucket"
+	prIdentifier: text("pr_identifier").notNull(), // "owner/repo#123"
+	prTitle: text("pr_title").notNull(),
+	prAuthor: text("pr_author").notNull(),
+	sourceBranch: text("source_branch").notNull(),
+	targetBranch: text("target_branch").notNull(),
+	status: text("status").notNull().default("queued"), // queued | in_progress | ready | submitted | failed
+	commitSha: text("commit_sha"),
+	summaryMarkdown: text("summary_markdown"),
+	summaryFilePath: text("summary_file_path"),
+	worktreePath: text("worktree_path"),
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export type ReviewDraft = typeof reviewDrafts.$inferSelect;
+export type NewReviewDraft = typeof reviewDrafts.$inferInsert;
+
+// Individual inline comments belonging to a review draft
+export const draftComments = sqliteTable("draft_comments", {
+	id: text("id").primaryKey(),
+	reviewDraftId: text("review_draft_id")
+		.notNull()
+		.references(() => reviewDrafts.id, { onDelete: "cascade" }),
+	filePath: text("file_path").notNull(),
+	lineNumber: integer("line_number"),
+	side: text("side"), // "LEFT" | "RIGHT"
+	body: text("body").notNull(),
+	status: text("status").notNull().default("pending"), // pending | approved | rejected | edited
+	userEdit: text("user_edit"),
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export type DraftComment = typeof draftComments.$inferSelect;
+export type NewDraftComment = typeof draftComments.$inferInsert;

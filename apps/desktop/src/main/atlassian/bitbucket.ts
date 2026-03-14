@@ -116,3 +116,34 @@ export async function getReviewRequests(): Promise<BitbucketPullRequest[]> {
 
 	return allPRs;
 }
+
+/** Post a comment on a Bitbucket pull request */
+export async function createPRComment(
+	workspace: string,
+	repoSlug: string,
+	prId: number,
+	body: string,
+	filePath?: string,
+	line?: number
+): Promise<void> {
+	const payload: Record<string, unknown> = {
+		content: { raw: body },
+	};
+
+	if (filePath && line) {
+		payload.inline = {
+			path: filePath,
+			to: line,
+		};
+	}
+
+	await atlassianFetch(
+		"bitbucket",
+		`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}/pullrequests/${prId}/comments`,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		}
+	);
+}
