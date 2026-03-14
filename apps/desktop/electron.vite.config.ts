@@ -66,6 +66,7 @@ export default defineConfig({
 				input: {
 					index: resolve(__dirname, "src/main/index.ts"),
 					daemon: resolve(__dirname, "src/daemon/index.ts"),
+					"mcp-server": resolve(__dirname, "src/main/ai-review/mcp-server.ts"),
 				},
 			},
 		},
