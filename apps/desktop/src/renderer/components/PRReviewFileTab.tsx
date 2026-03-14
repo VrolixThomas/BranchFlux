@@ -2,7 +2,12 @@
 import * as monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { GitHubPRContext, GitHubReviewThread } from "../../shared/github-types";
+import type {
+	AIDraftThread,
+	GitHubPRContext,
+	GitHubReviewThread,
+	UnifiedThread,
+} from "../../shared/github-types";
 import { useTabStore } from "../stores/tab-store";
 import { trpc } from "../trpc/client";
 import { DiffEditor } from "./DiffEditor";
@@ -13,10 +18,14 @@ function ThreadWidget({
 	thread,
 	onReply,
 	onResolve,
+	onAcceptDraft,
+	onDeclineDraft,
 }: {
-	thread: GitHubReviewThread;
+	thread: UnifiedThread;
 	onReply: (body: string) => void;
 	onResolve: () => void;
+	onAcceptDraft?: (draftCommentId: string) => void;
+	onDeclineDraft?: (draftCommentId: string) => void;
 }) {
 	const [replyOpen, setReplyOpen] = useState(false);
 	const [replyBody, setReplyBody] = useState("");
@@ -24,6 +33,58 @@ function ThreadWidget({
 	useEffect(() => {
 		if (replyOpen) replyInputRef.current?.focus();
 	}, [replyOpen]);
+
+	const isAI = !!thread.isAIDraft;
+
+	if (isAI) {
+		const aiThread = thread as AIDraftThread;
+		return (
+			<div
+				onMouseDown={(e) => e.stopPropagation()}
+				className="mx-2 my-1 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[11px] shadow-md overflow-hidden"
+				style={{ borderLeft: "2px solid #a78bfa" }}
+			>
+				{/* AI Thread header */}
+				<div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-3 py-1">
+					<div className="flex items-center gap-1.5">
+						<span className="ai-badge">AI</span>
+						<span className="text-[10px] font-medium text-[var(--text-tertiary)]">
+							BranchFlux AI
+						</span>
+					</div>
+				</div>
+
+				{/* AI comment body */}
+				<div className="px-3 py-2">
+					<p className="text-[var(--text-tertiary)] whitespace-pre-wrap">
+						{aiThread.userEdit ?? aiThread.body}
+					</p>
+				</div>
+
+				{/* Accept / Decline buttons */}
+				{aiThread.status === "pending" && (
+					<div className="flex gap-1.5 border-t border-[var(--border-subtle)] px-3 py-1.5">
+						<button
+							type="button"
+							onClick={() => onAcceptDraft?.(aiThread.draftCommentId)}
+							className="rounded-[4px] px-2 py-0.5 text-[10px] font-medium bg-[rgba(48,209,88,0.15)] text-[#30d158] hover:opacity-80"
+						>
+							Accept
+						</button>
+						<button
+							type="button"
+							onClick={() => onDeclineDraft?.(aiThread.draftCommentId)}
+							className="rounded-[4px] px-2 py-0.5 text-[10px] bg-[var(--bg-elevated)] text-[var(--text-tertiary)] hover:opacity-80"
+						>
+							Decline
+						</button>
+					</div>
+				)}
+			</div>
+		);
+	}
+
+	const ghThread = thread as GitHubReviewThread;
 
 	return (
 		<div
@@ -33,11 +94,11 @@ function ThreadWidget({
 			{/* Thread header */}
 			<div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-3 py-1">
 				<span className="text-[10px] font-mono text-[var(--text-quaternary)]">
-					{thread.path}:{thread.line ?? "?"}
+					{ghThread.path}:{ghThread.line ?? "?"}
 				</span>
 				<div className="flex items-center gap-2">
-					{thread.isResolved && <span className="text-[10px] text-green-400">Resolved</span>}
-					{!thread.isResolved && (
+					{ghThread.isResolved && <span className="text-[10px] text-green-400">Resolved</span>}
+					{!ghThread.isResolved && (
 						<button
 							type="button"
 							onClick={onResolve}
@@ -50,7 +111,7 @@ function ThreadWidget({
 			</div>
 
 			{/* Comments */}
-			{thread.comments.map((c) => (
+			{ghThread.comments.map((c) => (
 				<div key={c.id} className="border-b border-[var(--border-subtle)] px-3 py-2 last:border-0">
 					<div className="flex items-center gap-1.5 mb-1">
 						<span className="font-medium text-[var(--text-secondary)]">{c.author}</span>
@@ -63,7 +124,7 @@ function ThreadWidget({
 			))}
 
 			{/* Reply */}
-			{!thread.isResolved && (
+			{!ghThread.isResolved && (
 				<div className="border-t border-[var(--border-subtle)]">
 					{!replyOpen ? (
 						<button
@@ -177,12 +238,14 @@ function NewThreadWidget({
 
 function useInlineCommentZones(
 	editor: monaco.editor.IStandaloneDiffEditor | null,
-	threads: GitHubReviewThread[],
+	threads: UnifiedThread[],
 	pendingLine: number | null,
 	onReply: (threadId: string, body: string) => void,
 	onResolve: (threadId: string) => void,
 	onSaveNew: (body: string) => void,
-	onCancelNew: () => void
+	onCancelNew: () => void,
+	onAcceptDraft?: (draftCommentId: string) => void,
+	onDeclineDraft?: (draftCommentId: string) => void
 ) {
 	const zoneIdsRef = useRef<string[]>([]);
 	const rootsRef = useRef<ReturnType<typeof createRoot>[]>([]);
@@ -206,7 +269,7 @@ function useInlineCommentZones(
 		rootsRef.current = [];
 
 		// Group threads by line
-		const byLine = new Map<number, GitHubReviewThread[]>();
+		const byLine = new Map<number, UnifiedThread[]>();
 		for (const t of threads) {
 			if (t.line == null) continue;
 			const arr = byLine.get(t.line) ?? [];
@@ -228,10 +291,13 @@ function useInlineCommentZones(
 				domNode.addEventListener("mousedown", (e) => e.stopPropagation());
 				domNode.addEventListener("keydown", (e) => e.stopPropagation());
 
-				const estimatedPx = lineThreads.reduce(
-					(sum, t) => sum + 32 + t.comments.length * 48 + 40,
-					0
-				);
+				const estimatedPx = lineThreads.reduce((sum, t) => {
+					if (t.isAIDraft) {
+						const ai = t as AIDraftThread;
+						return sum + 32 + 48 + 40 + (ai.status === "pending" ? 36 : 0);
+					}
+					return sum + 32 + (t as GitHubReviewThread).comments.length * 48 + 40;
+				}, 0);
 				const lineHeight = modEditor.getOption(monaco.editor.EditorOption.lineHeight);
 				const heightInLines = Math.ceil(estimatedPx / lineHeight);
 
@@ -248,6 +314,8 @@ function useInlineCommentZones(
 								thread={t}
 								onReply={(body) => onReply(t.id, body)}
 								onResolve={() => onResolve(t.id)}
+								onAcceptDraft={onAcceptDraft}
+								onDeclineDraft={onDeclineDraft}
 							/>
 						))}
 					</div>
@@ -289,14 +357,24 @@ function useInlineCommentZones(
 				for (const root of newRoots) root.unmount();
 			});
 		};
-	}, [editor, threads, pendingLine, onReply, onResolve, onSaveNew, onCancelNew]);
+	}, [
+		editor,
+		threads,
+		pendingLine,
+		onReply,
+		onResolve,
+		onSaveNew,
+		onCancelNew,
+		onAcceptDraft,
+		onDeclineDraft,
+	]);
 }
 
 // ── Line decorations for threads ──────────────────────────────────────────────
 
 function useThreadDecorations(
 	editor: monaco.editor.IStandaloneDiffEditor | null,
-	threads: GitHubReviewThread[]
+	threads: UnifiedThread[]
 ) {
 	const decorationRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 
@@ -308,16 +386,29 @@ function useThreadDecorations(
 
 		const decorations: monaco.editor.IModelDeltaDecoration[] = threads
 			.filter((t) => t.line != null)
-			.map((t) => ({
-				range: new monaco.Range(t.line!, 1, t.line!, 1),
-				options: {
-					isWholeLine: true,
-					linesDecorationsClassName: t.isResolved
-						? "pr-thread-resolved-gutter"
-						: "pr-thread-unresolved-gutter",
-					className: t.isResolved ? undefined : "pr-thread-unresolved-line",
-				},
-			}));
+			.map((t) => {
+				if (t.isAIDraft) {
+					return {
+						range: new monaco.Range(t.line!, 1, t.line!, 1),
+						options: {
+							isWholeLine: true,
+							linesDecorationsClassName: "pr-thread-ai-draft-gutter",
+							className: "pr-thread-ai-draft-line",
+						},
+					};
+				}
+				const gh = t as GitHubReviewThread;
+				return {
+					range: new monaco.Range(t.line!, 1, t.line!, 1),
+					options: {
+						isWholeLine: true,
+						linesDecorationsClassName: gh.isResolved
+							? "pr-thread-resolved-gutter"
+							: "pr-thread-unresolved-gutter",
+						className: gh.isResolved ? undefined : "pr-thread-unresolved-line",
+					},
+				};
+			});
 
 		decorationRef.current = modEditor.createDecorationsCollection(decorations);
 		return () => decorationRef.current?.clear();
@@ -425,6 +516,21 @@ export function PRReviewFileTab({ prCtx, filePath, language }: PRReviewFileTabPr
 		{ staleTime: 30_000 }
 	);
 
+	// AI review draft for this PR
+	const prIdentifier = `${prCtx.owner}/${prCtx.repo}#${prCtx.number}`;
+	const reviewDraftsQuery = trpc.aiReview.getReviewDrafts.useQuery(undefined, {
+		staleTime: 5_000,
+	});
+	const matchingDraft = reviewDraftsQuery.data?.find((d) => d.prIdentifier === prIdentifier);
+	const aiDraftQuery = trpc.aiReview.getReviewDraft.useQuery(
+		{ draftId: matchingDraft?.id ?? "" },
+		{ enabled: !!matchingDraft?.id }
+	);
+
+	const updateDraftComment = trpc.aiReview.updateDraftComment.useMutation({
+		onSuccess: () => aiDraftQuery.refetch(),
+	});
+
 	// Viewed state
 	const { data: viewedFilesList } = trpc.github.getViewedFiles.useQuery(
 		{ owner: prCtx.owner, repo: prCtx.repo, number: prCtx.number },
@@ -468,12 +574,33 @@ export function PRReviewFileTab({ prCtx, filePath, language }: PRReviewFileTabPr
 			}),
 	});
 
-	// Threads for this file
-	const fileThreads = (prDetails?.reviewThreads ?? []).filter((t) => t.path === filePath);
+	// Threads for this file — merge GitHub threads with AI draft threads
+	const aiThreads: AIDraftThread[] = (aiDraftQuery.data?.comments ?? [])
+		.filter((c) => c.status !== "rejected")
+		.map((c) => ({
+			id: `ai-${c.id}`,
+			isAIDraft: true as const,
+			draftCommentId: c.id,
+			path: c.filePath,
+			line: c.lineNumber,
+			diffSide: (c.side as "LEFT" | "RIGHT") ?? "RIGHT",
+			body: c.body,
+			status: c.status as "pending" | "approved" | "rejected" | "edited",
+			userEdit: c.userEdit ?? null,
+			createdAt:
+				typeof c.createdAt === "string" ? c.createdAt : new Date(c.createdAt).toISOString(),
+		}));
+
+	const githubFileThreads = (prDetails?.reviewThreads ?? []).filter((t) => t.path === filePath);
+	const aiFileThreads = aiThreads.filter((t) => t.path === filePath);
+	const fileThreads: UnifiedThread[] = [...githubFileThreads, ...aiFileThreads];
 
 	// Thread navigation
 	const unresolvedLines = fileThreads
-		.filter((t) => !t.isResolved && t.line != null)
+		.filter((t) => {
+			if (t.isAIDraft) return t.status === "pending" && t.line != null;
+			return !(t as GitHubReviewThread).isResolved && t.line != null;
+		})
 		.map((t) => t.line!)
 		.sort((a, b) => a - b);
 	const [navIdx, setNavIdx] = useState(0);
@@ -525,6 +652,20 @@ export function PRReviewFileTab({ prCtx, filePath, language }: PRReviewFileTabPr
 		[resolveThread]
 	);
 
+	const handleAcceptDraft = useCallback(
+		(draftCommentId: string) => {
+			updateDraftComment.mutate({ commentId: draftCommentId, status: "approved" });
+		},
+		[updateDraftComment]
+	);
+
+	const handleDeclineDraft = useCallback(
+		(draftCommentId: string) => {
+			updateDraftComment.mutate({ commentId: draftCommentId, status: "rejected" });
+		},
+		[updateDraftComment]
+	);
+
 	// Hooks for inline zones + decorations + gutter actions
 	useInlineCommentZones(
 		editorInstance,
@@ -533,7 +674,9 @@ export function PRReviewFileTab({ prCtx, filePath, language }: PRReviewFileTabPr
 		handleReply,
 		handleResolve,
 		handleSaveNew,
-		() => setPendingLine(null)
+		() => setPendingLine(null),
+		handleAcceptDraft,
+		handleDeclineDraft
 	);
 	useThreadDecorations(editorInstance, fileThreads);
 	useGutterPlusButton(editorInstance, (line) => setPendingLine(line));
