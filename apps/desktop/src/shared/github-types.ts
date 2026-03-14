@@ -36,15 +36,13 @@ export interface AIDraftThread {
 	line: number | null;
 	diffSide: "LEFT" | "RIGHT";
 	body: string;
-	status: "pending" | "approved" | "rejected" | "edited";
+	status: "pending" | "approved" | "rejected" | "edited" | "submitted";
 	userEdit: string | null;
 	createdAt: string;
 }
 
 /** Union type for rendering — either a real GitHub thread or an AI draft */
-export type UnifiedThread =
-	| (GitHubReviewThread & { isAIDraft?: false })
-	| AIDraftThread;
+export type UnifiedThread = (GitHubReviewThread & { isAIDraft?: false }) | AIDraftThread;
 
 export interface GitHubCheckRun {
 	name: string;
