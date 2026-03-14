@@ -463,21 +463,29 @@ export function PRReviewPanel({ prCtx }: { prCtx: GitHubPRContext }) {
 		{ enabled: !!matchingDraft?.id }
 	);
 
+	const mapComment = (c: NonNullable<typeof aiDraftQuery.data>["comments"][number]): AIDraftThread => ({
+		id: `ai-${c.id}`,
+		isAIDraft: true as const,
+		draftCommentId: c.id,
+		path: c.filePath,
+		line: c.lineNumber,
+		diffSide: (c.side as "LEFT" | "RIGHT") ?? "RIGHT",
+		body: c.body,
+		status: c.status as AIDraftThread["status"],
+		userEdit: c.userEdit ?? null,
+		createdAt:
+			typeof c.createdAt === "string" ? c.createdAt : new Date(c.createdAt).toISOString(),
+	});
+
+	// Pending/edited — shown in inline editor and comment overview
 	const aiThreads: AIDraftThread[] = (aiDraftQuery.data?.comments ?? [])
 		.filter((c) => c.status === "pending" || c.status === "edited")
-		.map((c) => ({
-			id: `ai-${c.id}`,
-			isAIDraft: true as const,
-			draftCommentId: c.id,
-			path: c.filePath,
-			line: c.lineNumber,
-			diffSide: (c.side as "LEFT" | "RIGHT") ?? "RIGHT",
-			body: c.body,
-			status: c.status as "pending" | "approved" | "rejected" | "edited",
-			userEdit: c.userEdit ?? null,
-			createdAt:
-				typeof c.createdAt === "string" ? c.createdAt : new Date(c.createdAt).toISOString(),
-		}));
+		.map(mapComment);
+
+	// Approved — shown in the submit banner only
+	const acceptedAiThreads: AIDraftThread[] = (aiDraftQuery.data?.comments ?? [])
+		.filter((c) => c.status === "approved")
+		.map(mapComment);
 
 	if (isLoading || !details) {
 		return (
@@ -510,7 +518,7 @@ export function PRReviewPanel({ prCtx }: { prCtx: GitHubPRContext }) {
 			{details && <CommentOverview details={details} prCtx={prCtx} aiThreads={aiThreads} />}
 			<SubmitReview
 				prCtx={prCtx}
-				aiThreads={aiThreads}
+				aiThreads={acceptedAiThreads}
 				headCommitOid={details?.headCommitOid ?? ""}
 				onSubmitted={() => {
 					utils.github.getPRDetails.invalidate({
