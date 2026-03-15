@@ -35,12 +35,24 @@ export type TabItem =
 			filePath: string;
 			title: string;
 			language: string;
+	  }
+	| {
+			kind: "ai-review-summary";
+			id: string;
+			workspaceId: string;
+			title: string;
+			draftId: string;
 	  };
 export type PanelMode = "diff" | "explorer" | "pr-review";
 
 export type RightPanelState =
 	| { open: false }
-	| { open: true; mode: PanelMode; diffCtx: DiffContext | null; prCtx?: GitHubPRContext };
+	| {
+			open: true;
+			mode: PanelMode;
+			diffCtx: DiffContext | null;
+			prCtx?: GitHubPRContext;
+	  };
 
 export const PANEL_CLOSED: RightPanelState = { open: false };
 
@@ -84,6 +96,7 @@ interface TabStore {
 		filePath: string,
 		language: string
 	) => string;
+	openAIReviewSummary: (workspaceId: string, draftId: string, prTitle: string) => string;
 
 	// Diff convenience
 	toggleDiffPanel: (diffCtx: DiffContext) => void;
@@ -323,7 +336,6 @@ export const useTabStore = create<TabStore>()((set, get) => ({
 	openPRReviewPanel: (_workspaceId, prCtx) => {
 		set({ rightPanel: { open: true, mode: "pr-review", diffCtx: null, prCtx } });
 	},
-
 	openPRReviewFile: (workspaceId, prCtx, filePath, language) => {
 		const key = prReviewFileKey(prCtx, filePath);
 		const found = findTabInWorkspace(
@@ -348,6 +360,32 @@ export const useTabStore = create<TabStore>()((set, get) => ({
 			filePath,
 			title,
 			language,
+		};
+		ps().ensureLayout(workspaceId);
+		const focused = resolveFocusedPane(workspaceId);
+		if (focused) {
+			ps().addTabToPane(workspaceId, focused.id, tab);
+		}
+		return id;
+	},
+
+	openAIReviewSummary: (workspaceId, draftId, prTitle) => {
+		const found = findTabInWorkspace(
+			workspaceId,
+			(t) => t.kind === "ai-review-summary" && t.draftId === draftId
+		);
+		if (found) {
+			ps().setActiveTabInPane(workspaceId, found.pane.id, found.tab.id);
+			ps().setFocusedPane(found.pane.id);
+			return found.tab.id;
+		}
+		const id = nextFileTabId();
+		const tab: TabItem = {
+			kind: "ai-review-summary",
+			id,
+			workspaceId,
+			title: `Summary: ${prTitle}`,
+			draftId,
 		};
 		ps().ensureLayout(workspaceId);
 		const focused = resolveFocusedPane(workspaceId);

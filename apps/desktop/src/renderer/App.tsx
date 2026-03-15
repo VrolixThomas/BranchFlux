@@ -27,9 +27,7 @@ function serializeLayout(node: LayoutNode): SerializedLayoutNode {
 		return {
 			type: "pane",
 			id: node.id,
-			tabs: node.tabs.map((t) =>
-				t.kind === "file" ? { ...t, initialPosition: undefined } : t
-			),
+			tabs: node.tabs.map((t) => (t.kind === "file" ? { ...t, initialPosition: undefined } : t)),
 			activeTabId: node.activeTabId,
 		};
 	}

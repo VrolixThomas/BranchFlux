@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { eq, inArray } from "drizzle-orm";
-import { nanoid } from "nanoid";
 import { app } from "electron";
+import { nanoid } from "nanoid";
 import { getDb } from "../db";
 import * as schema from "../db/schema";
 import { checkoutBranchWorktree } from "../git/operations";
@@ -217,12 +217,8 @@ async function startReview(draftId: string, repoPath: string): Promise<ReviewLau
 				.where(eq(schema.worktrees.path, worktreePath))
 				.get();
 			if (existingWt) {
-				db.delete(schema.workspaces)
-					.where(eq(schema.workspaces.worktreeId, existingWt.id))
-					.run();
-				db.delete(schema.worktrees)
-					.where(eq(schema.worktrees.id, existingWt.id))
-					.run();
+				db.delete(schema.workspaces).where(eq(schema.workspaces.worktreeId, existingWt.id)).run();
+				db.delete(schema.worktrees).where(eq(schema.worktrees.id, existingWt.id)).run();
 			}
 
 			db.insert(schema.worktrees)
@@ -317,12 +313,7 @@ async function startReview(draftId: string, repoPath: string): Promise<ReviewLau
 					`export DB_PATH='${dbPath}'`,
 					`export WORKTREE_PATH='${worktreePath}'`,
 				];
-		const scriptContent = [
-			"#!/bin/bash",
-			...envLines,
-			"",
-			cliCommand,
-		].join("\n");
+		const scriptContent = ["#!/bin/bash", ...envLines, "", cliCommand].join("\n");
 		writeFileSync(launchScript, scriptContent, "utf-8");
 		chmodSync(launchScript, 0o755);
 

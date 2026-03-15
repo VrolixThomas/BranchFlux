@@ -477,6 +477,10 @@ export function PRReviewPanel({ prCtx }: { prCtx: GitHubPRContext }) {
 		.filter((c) => c.status === "approved")
 		.map(mapComment);
 
+	const activeWorkspaceId = useTabStore((s) => s.activeWorkspaceId);
+	const openAIReviewSummary = useTabStore((s) => s.openAIReviewSummary);
+	const hasSummary = !!aiDraftQuery.data?.summaryMarkdown;
+
 	if (isLoading || !details) {
 		return (
 			<div className="flex flex-col gap-2 p-3">
@@ -490,6 +494,20 @@ export function PRReviewPanel({ prCtx }: { prCtx: GitHubPRContext }) {
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
 			<PRHeader details={details} prCtx={prCtx} />
+			{hasSummary && matchingDraft && activeWorkspaceId && (
+				<div className="border-b border-[var(--border-subtle)] px-3 py-1.5">
+					<button
+						type="button"
+						onClick={() =>
+							openAIReviewSummary(activeWorkspaceId, matchingDraft.id, details.title)
+						}
+						className="flex items-center gap-1.5 rounded-[4px] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+					>
+						<span className="ai-badge">AI</span>
+						<span>View Summary</span>
+					</button>
+				</div>
+			)}
 			<FileList
 				details={details}
 				prCtx={prCtx}
