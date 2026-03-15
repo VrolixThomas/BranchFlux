@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -109,7 +109,9 @@ server.tool(
 			.get(REVIEW_DRAFT_ID);
 
 		// Check if summary was saved
-		const draft = db.prepare("SELECT summary_markdown FROM review_drafts WHERE id = ?").get(REVIEW_DRAFT_ID);
+		const draft = db
+			.prepare("SELECT summary_markdown FROM review_drafts WHERE id = ?")
+			.get(REVIEW_DRAFT_ID);
 
 		// Update status to ready
 		db.prepare("UPDATE review_drafts SET status = 'ready', updated_at = ? WHERE id = ?").run(

@@ -108,6 +108,14 @@ export function SettingsView() {
 		},
 	});
 
+	// AI Code Review
+	const { data: aiSettings } = trpc.aiReview.getSettings.useQuery(undefined, {
+		staleTime: 30_000,
+	});
+	const updateAiSettings = trpc.aiReview.updateSettings.useMutation({
+		onSuccess: () => utils.aiReview.getSettings.invalidate(),
+	});
+
 	return (
 		<div className="flex h-full flex-col">
 			{/* Header */}
@@ -194,6 +202,93 @@ export function SettingsView() {
 						onConnect={() => githubConnect.mutate()}
 						onDisconnect={() => githubDisconnect.mutate()}
 					/>
+				</div>
+
+				{/* AI Code Review section */}
+				<div className="mt-6 px-3 pb-2">
+					<span className="text-[11px] font-medium uppercase tracking-[0.05em] text-[var(--text-quaternary)]">
+						AI Code Review
+					</span>
+				</div>
+
+				<div className="flex flex-col gap-0.5 px-3">
+					{/* CLI Preset */}
+					<div className="flex items-center justify-between rounded-[8px] px-3 py-2.5 transition-colors hover:bg-[var(--bg-elevated)]">
+						<div className="flex flex-col gap-0.5">
+							<span className="text-[13px] font-medium text-[var(--text)]">Review Tool</span>
+							<span className="text-[11px] text-[var(--text-tertiary)]">
+								CLI tool used for AI-powered code review
+							</span>
+						</div>
+						<select
+							value={aiSettings?.cliPreset ?? "claude"}
+							onChange={(e) =>
+								updateAiSettings.mutate({
+									cliPreset: e.target.value as "claude" | "gemini" | "codex" | "opencode",
+								})
+							}
+							className="rounded-[6px] border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1 text-[12px] text-[var(--text)]"
+						>
+							<option value="claude">Claude Code</option>
+							<option value="gemini">Gemini CLI</option>
+							<option value="codex">Codex</option>
+							<option value="opencode">OpenCode</option>
+						</select>
+					</div>
+
+					{/* Auto Review Toggle */}
+					<div className="flex items-center justify-between rounded-[8px] px-3 py-2.5 transition-colors hover:bg-[var(--bg-elevated)]">
+						<div className="flex flex-col gap-0.5">
+							<span className="text-[13px] font-medium text-[var(--text)]">Automatic Review</span>
+							<span className="text-[11px] text-[var(--text-tertiary)]">
+								Automatically review PRs when you're added as reviewer
+							</span>
+						</div>
+						<button
+							type="button"
+							onClick={() =>
+								updateAiSettings.mutate({
+									autoReviewEnabled: !aiSettings?.autoReviewEnabled,
+								})
+							}
+							className={`relative h-[22px] w-[40px] rounded-full transition-colors ${
+								aiSettings?.autoReviewEnabled ? "bg-[var(--accent)]" : "bg-[var(--bg-elevated)]"
+							}`}
+						>
+							<div
+								className={`absolute top-[2px] size-[18px] rounded-full bg-white transition-transform ${
+									aiSettings?.autoReviewEnabled ? "translate-x-[20px]" : "translate-x-[2px]"
+								}`}
+							/>
+						</button>
+					</div>
+
+					{/* Max Concurrent Reviews */}
+					<div className="flex items-center justify-between rounded-[8px] px-3 py-2.5 transition-colors hover:bg-[var(--bg-elevated)]">
+						<div className="flex flex-col gap-0.5">
+							<span className="text-[13px] font-medium text-[var(--text)]">
+								Max Concurrent Reviews
+							</span>
+							<span className="text-[11px] text-[var(--text-tertiary)]">
+								Limit parallel AI reviews to manage resources
+							</span>
+						</div>
+						<select
+							value={aiSettings?.maxConcurrentReviews ?? 3}
+							onChange={(e) =>
+								updateAiSettings.mutate({
+									maxConcurrentReviews: Number(e.target.value),
+								})
+							}
+							className="rounded-[6px] border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1 text-[12px] text-[var(--text)]"
+						>
+							{[1, 2, 3, 4, 5].map((n) => (
+								<option key={n} value={n}>
+									{n}
+								</option>
+							))}
+						</select>
+					</div>
 				</div>
 			</div>
 		</div>

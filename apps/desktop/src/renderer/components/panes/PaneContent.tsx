@@ -1,4 +1,5 @@
 import type { Pane } from "../../../shared/pane-types";
+import { AIReviewSummaryTab } from "../AIReviewSummaryTab";
 import { DiffFileTab } from "../DiffFileTab";
 import { FileEditor } from "../FileEditor";
 import { PRReviewFileTab } from "../PRReviewFileTab";
@@ -67,6 +68,11 @@ export function PaneContent({
 						filePath={activeTab.filePath}
 						language={activeTab.language}
 					/>
+				</div>
+			)}
+			{activeTab?.kind === "ai-review-summary" && (
+				<div className="absolute inset-0">
+					<AIReviewSummaryTab key={activeTab.draftId} draftId={activeTab.draftId} />
 				</div>
 			)}
 		</div>

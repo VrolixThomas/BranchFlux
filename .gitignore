@@ -44,6 +44,9 @@ apps/desktop/dist/
 # Claude Code
 .claude/
 
+# Superpowers
+.superpowers/
+
 # OS
 Thumbs.db
 

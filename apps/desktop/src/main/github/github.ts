@@ -351,11 +351,7 @@ export async function getMyPRs(): Promise<GitHubPR[]> {
 		nodes.push({ node, role: "author" });
 	}
 
-	const allReviewerNodes = [
-		...reviewRequestedNodes,
-		...reviewedByNodes,
-		...teamNodes.flat(),
-	];
+	const allReviewerNodes = [...reviewRequestedNodes, ...reviewedByNodes, ...teamNodes.flat()];
 	for (const node of allReviewerNodes) {
 		if (!seen.has(node.id)) {
 			seen.add(node.id);
