@@ -11,6 +11,8 @@ export const aiReviewSettings = sqliteTable("ai_review_settings", {
 	maxConcurrentReviews: integer("max_concurrent_reviews").notNull().default(3),
 	autoApproveResolutions: integer("auto_approve_resolutions").notNull().default(0),
 	autoPublishResolutions: integer("auto_publish_resolutions").notNull().default(0),
+	autoResolveThreads: integer("auto_resolve_threads", { mode: "boolean" }).default(false),
+	postReplyOnPush: integer("post_reply_on_push", { mode: "boolean" }).default(true),
 	updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 
