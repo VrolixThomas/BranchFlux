@@ -7,6 +7,7 @@ import { githubRouter } from "./github";
 import { linearRouter } from "./linear";
 import { prPollerRouter } from "./pr-poller";
 import { projectsRouter } from "./projects";
+import { resolutionRouter } from "./resolution";
 import { sharedFilesRouter } from "./shared-files";
 import { terminalSessionsRouter } from "./terminal-sessions";
 import { ticketsRouter } from "./tickets";
@@ -25,6 +26,7 @@ export const appRouter = router({
 	github: githubRouter,
 	tickets: ticketsRouter,
 	prPoller: prPollerRouter,
+	resolution: resolutionRouter,
 });
 
 export type AppRouter = typeof appRouter;
