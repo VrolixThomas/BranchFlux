@@ -6,9 +6,11 @@ import { startPolling } from "./ai-review/commit-poller";
 import { cleanupStaleReviews } from "./ai-review/orchestrator";
 import {
 	onNewPRDetected,
+	onNewReviewComments,
 	onPRClosedDetected,
 	startPolling as startPRPolling,
 } from "./ai-review/pr-poller";
+import { cleanupStaleResolutionSessions } from "./ai-review/resolution-orchestrator";
 import { getDb, initializeDatabase } from "./db";
 import * as schema from "./db/schema";
 import {
@@ -77,6 +79,7 @@ app.whenReady().then(async () => {
 		return;
 	}
 	cleanupStaleReviews();
+	cleanupStaleResolutionSessions();
 	startPolling();
 	startPRPolling();
 
@@ -94,6 +97,10 @@ app.whenReady().then(async () => {
 		for (const win of BrowserWindow.getAllWindows()) {
 			win.webContents.send("pr-closed", pr);
 		}
+	});
+
+	onNewReviewComments((prIdentifier, newCount) => {
+		mainWindow?.webContents.send("new-review-comments", { prIdentifier, newCount });
 	});
 
 	// Clear ephemeral terminal IDs (reset across sessions)

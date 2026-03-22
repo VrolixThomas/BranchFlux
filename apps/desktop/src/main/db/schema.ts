@@ -251,3 +251,5 @@ export {
 	type DraftComment,
 	type NewDraftComment,
 } from "./schema-ai-review";
+
+export { resolutionSessions, resolutionGroups, resolutionComments } from "./schema-resolution";

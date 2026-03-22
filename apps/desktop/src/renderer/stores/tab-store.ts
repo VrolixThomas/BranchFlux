@@ -44,7 +44,7 @@ export type TabItem =
 			title: string;
 			prCtx: PRContext;
 	  };
-export type PanelMode = "diff" | "explorer" | "pr-review";
+export type PanelMode = "diff" | "explorer" | "pr-review" | "pr-comments";
 
 export type RightPanelState =
 	| { open: false }
@@ -112,6 +112,7 @@ interface TabStore {
 
 	// PR review
 	openPRReviewPanel: (workspaceId: string, prCtx: PRContext) => void;
+	openPRCommentsPanel: (workspaceId: string, prCtx: PRContext) => void;
 	openPRReviewFile: (
 		workspaceId: string,
 		prCtx: PRContext,
@@ -461,6 +462,9 @@ export const useTabStore = create<TabStore>()((set, get) => ({
 		// which fires the cross-store bridge (bumps _paneVersion), which would cause
 		// an infinite setState cascade if done synchronously in the same commit.
 		queueMicrotask(() => get().openPROverview(workspaceId, prCtx));
+	},
+	openPRCommentsPanel: (workspaceId, prCtx) => {
+		set({ rightPanel: { open: true, mode: "pr-comments", diffCtx: null, prCtx } });
 	},
 	openPRReviewFile: (workspaceId, prCtx, filePath, language) => {
 		const key = prReviewFileKey(prCtx, filePath);

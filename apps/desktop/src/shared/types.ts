@@ -75,3 +75,9 @@ export interface LspAPI {
 }
 
 export type SidebarSegment = "repos" | "tickets" | "prs";
+
+export interface ReviewAPI {
+	onNewReviewComments: (
+		callback: (data: { prIdentifier: string; newCount: number }) => void
+	) => () => void;
+}

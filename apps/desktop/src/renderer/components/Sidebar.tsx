@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { SidebarSegment } from "../../shared/types";
 import { useProjectStore } from "../stores/projects";
 import { useTabStore } from "../stores/tab-store";
@@ -35,6 +35,20 @@ export function Sidebar({ collapsed, onExpand }: SidebarProps) {
 		refetchInterval: 30_000,
 	});
 	const hasNewPRs = (cachedPRs.data?.length ?? 0) > 0;
+
+	// Compute total comment count across author PRs linked to workspaces
+	const workspaceMetadata = useTabStore((s) => s.workspaceMetadata);
+	const authorCommentCount = useMemo(() => {
+		const prs = cachedPRs.data ?? [];
+		const linkedIdentifiers = new Set(
+			Object.values(workspaceMetadata)
+				.filter((m) => m.prProvider && m.prIdentifier)
+				.map((m) => m.prIdentifier)
+		);
+		return prs
+			.filter((pr) => pr.role === "author" && linkedIdentifiers.has(pr.identifier))
+			.reduce((sum, pr) => sum + pr.commentCount, 0);
+	}, [cachedPRs.data, workspaceMetadata]);
 
 	const handleExpand = (section?: "tickets" | "prs") => {
 		onExpand(section);
@@ -82,6 +96,11 @@ export function Sidebar({ collapsed, onExpand }: SidebarProps) {
 								{seg === "prs" ? "PRs" : seg.charAt(0).toUpperCase() + seg.slice(1)}
 								{seg === "prs" && (hasAINotification || hasNewPRs) && segment !== "prs" && (
 									<span className="absolute right-1.5 top-1 h-1.5 w-1.5 rounded-full bg-[#30d158]" />
+								)}
+								{seg === "prs" && authorCommentCount > 0 && (
+									<span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[var(--term-red)] px-1 text-[8px] font-bold leading-none text-white">
+										{authorCommentCount}
+									</span>
 								)}
 							</button>
 						))}
