@@ -3,6 +3,7 @@ import type {
 	DaemonAPI,
 	DialogAPI,
 	LspAPI,
+	ReviewAPI,
 	SessionAPI,
 	SessionSaveData,
 	ShellAPI,
@@ -96,6 +97,14 @@ const daemonAPI: DaemonAPI = {
 	listSessions: () => ipcRenderer.invoke("daemon:listSessions"),
 };
 
+const reviewAPI: ReviewAPI = {
+	onNewReviewComments: (callback: (data: { prIdentifier: string; newCount: number }) => void) => {
+		const handler = (_event: Electron.IpcRendererEvent, data: { prIdentifier: string; newCount: number }) => callback(data);
+		ipcRenderer.on("new-review-comments", handler);
+		return () => ipcRenderer.removeListener("new-review-comments", handler);
+	},
+};
+
 contextBridge.exposeInMainWorld("electron", {
 	terminal: terminalAPI,
 	trpc: trpcAPI,
@@ -104,4 +113,5 @@ contextBridge.exposeInMainWorld("electron", {
 	shell: shellAPI,
 	lsp: lspAPI,
 	daemon: daemonAPI,
+	review: reviewAPI,
 });

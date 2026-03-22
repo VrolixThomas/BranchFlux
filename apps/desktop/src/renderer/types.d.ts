@@ -2,6 +2,7 @@ import type {
 	DaemonAPI,
 	DialogAPI,
 	LspAPI,
+	ReviewAPI,
 	SessionAPI,
 	ShellAPI,
 	TerminalAPI,
@@ -16,6 +17,7 @@ export interface ElectronAPI {
 	shell: ShellAPI;
 	lsp: LspAPI;
 	daemon: DaemonAPI;
+	review: ReviewAPI;
 }
 
 declare global {

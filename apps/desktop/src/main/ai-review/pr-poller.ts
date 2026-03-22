@@ -2,18 +2,23 @@ import type { CachedPR } from "../../shared/review-types";
 import { getAuth as getBitbucketAuth } from "../atlassian/auth";
 import { getMyPullRequests, getReviewRequests } from "../atlassian/bitbucket";
 import { getDb } from "../db";
-import { projects } from "../db/schema";
+import { projects, workspaces } from "../db/schema";
 import { getValidToken } from "../github/auth";
 import { getMyPRs } from "../github/github";
+import { and, eq, isNull } from "drizzle-orm";
 
 const POLL_INTERVAL_MS = 60_000;
 
 // In-memory cache: identifier -> CachedPR
 const prCache = new Map<string, CachedPR>();
 
+// Track comment counts per PR identifier to detect increases
+const previousCommentCounts = new Map<string, number>();
+
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let onNewPRHandler: ((pr: CachedPR) => void) | null = null;
 let onPRClosedHandler: ((pr: CachedPR) => void) | null = null;
+let onNewReviewCommentsHandler: ((prIdentifier: string, newCount: number) => void) | null = null;
 
 // ── Public event registration ──────────────────────────────────────────────────
 
@@ -23,6 +28,12 @@ export function onNewPRDetected(handler: (pr: CachedPR) => void): void {
 
 export function onPRClosedDetected(handler: (pr: CachedPR) => void): void {
 	onPRClosedHandler = handler;
+}
+
+export function onNewReviewComments(
+	handler: (prIdentifier: string, newCount: number) => void,
+): void {
+	onNewReviewCommentsHandler = handler;
 }
 
 // ── Cache access ───────────────────────────────────────────────────────────────
@@ -213,6 +224,64 @@ async function doPoll(): Promise<void> {
 	}
 	for (const pr of fetched) {
 		prCache.set(pr.identifier, pr);
+	}
+
+	// Process author PRs: auto-link workspaces and track comment count changes
+	const authorPRs = fetched.filter((pr) => pr.role === "author" && pr.state === "open");
+	const db = getDb();
+
+	for (const pr of authorPRs) {
+		// Auto-link workspace to PR if not already linked
+		if (pr.projectId && pr.sourceBranch) {
+			const unlinkedWorkspaces = db
+				.select()
+				.from(workspaces)
+				.where(
+					and(
+						eq(workspaces.projectId, pr.projectId),
+						eq(workspaces.type, "branch"),
+						isNull(workspaces.prProvider)
+					)
+				)
+				.all();
+
+			for (const ws of unlinkedWorkspaces) {
+				const worktreeBranch = ws.name;
+				if (worktreeBranch === pr.sourceBranch) {
+					db.update(workspaces)
+						.set({
+							prProvider: pr.provider,
+							prIdentifier: pr.identifier,
+							updatedAt: new Date(),
+						})
+						.where(eq(workspaces.id, ws.id))
+						.run();
+					console.log(
+						`[pr-poller] Linked workspace ${ws.id} to PR ${pr.identifier}`
+					);
+					break;
+				}
+			}
+		}
+
+		// Track comment count changes
+		const prevCount = previousCommentCounts.get(pr.identifier);
+		const currentCount = pr.commentCount;
+		if (prevCount !== undefined && currentCount > prevCount) {
+			const newCount = currentCount - prevCount;
+			console.log(
+				`[pr-poller] New review comments on ${pr.identifier}: +${newCount}`
+			);
+			onNewReviewCommentsHandler?.(pr.identifier, newCount);
+		}
+		previousCommentCounts.set(pr.identifier, currentCount);
+	}
+
+	// Clean up tracking for PRs that are no longer present
+	for (const identifier of previousCommentCounts.keys()) {
+		if (!fetchedByIdentifier.has(identifier)) {
+			previousCommentCounts.delete(identifier);
+		}
 	}
 }
 
